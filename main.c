@@ -297,7 +297,7 @@ time_t rawtime;
 bool saveraw;
 
 //added by RSLU 23.11.2017
-char moduleNumber[10];
+char moduleNumber[80];
  
 delay1 = 100;
 delay2 = 0;
