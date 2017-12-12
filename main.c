@@ -63,7 +63,11 @@ static unsigned char BusMode;         // global to remember status of gpio lines
 #define CMDH_LOOPBACK    0x1F
 #define DAC_HIGH_WORD    0x42
 #define DAC_LOW_WORD     0x0A
-#define TRIGGER_DELAY    0x00// 0x00 to 0x07
+
+
+// Each increment moves the signal to lower timesample values by about 6 ns
+// Range: 0x00 (Max in TS8 in B27) to 0x07 (larger values seem to be ignored by the FPGA)
+#define TRIGGER_DELAY    0x15
 
 /* // ****** OLD STRINGS **** DO NOT USE
 // Calibration String enabling Test Pulse on Ch. 2
