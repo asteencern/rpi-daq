@@ -63,7 +63,7 @@ static unsigned char BusMode;         // global to remember status of gpio lines
 #define CMDH_LOOPBACK    0x1F
 #define DAC_HIGH_WORD    0x42
 #define DAC_LOW_WORD     0x0A
-#define TRIGGER_DELAY    0x07// 0x00 to 0x07
+#define TRIGGER_DELAY    0x00// 0x00 to 0x07
 
 /* // ****** OLD STRINGS **** DO NOT USE
 // Calibration String enabling Test Pulse on Ch. 2
@@ -283,7 +283,7 @@ int ch, sample, chip;
 int i, k, n;
 int maxevents = 10;
 int dac_ctrl = 0;
-int dac_fs = 4096;
+const int dac_fs = 4096;
 struct tm *info;
 char buffer[80];
 char fname [160];
@@ -458,13 +458,13 @@ else{
     n = 0;
     for(i = 0; i < maxevents; i = i +1){
 		if(pulse_sweep[0] == 'Y' | pulse_sweep[0] == 'y'){ 
-			dac_ctrl = dac_ctrl + dac_fs/maxevents;
-			res = set_dac_high_word((dac_ctrl & 0xFF0)>>4);
-			res = set_dac_low_word(dac_ctrl & 0x00F);
+		  dac_ctrl = dac_fs * (float)(i) / (float)(maxevents);
+		  res = set_dac_high_word((dac_ctrl & 0xFF0)>>4);
+		  res = set_dac_low_word(dac_ctrl & 0x00F);
 		}
 		else{
-		    res = set_dac_high_word(DAC_HIGH_WORD);
-			res = set_dac_low_word(DAC_LOW_WORD);	
+		  res = set_dac_high_word(DAC_HIGH_WORD);
+		  res = set_dac_low_word(DAC_LOW_WORD);	
 		}
 		res = send_command(CMD_RESETPULSE);
     	usleep(delay1);
@@ -519,7 +519,7 @@ else{
 	/*             write event to data file              */
 	/*****************************************************/
 		for(chip = 0; chip < 4; chip = chip + 1){
-			fprintf(fout, "Event %d Chip %d RollMask %x \n",i, chip, ev[chip][1920]);
+		  fprintf(fout, "Event %d Chip %d RollMask %x DacInj %x\n",i, chip, ev[chip][1920], dac_ctrl);
 			for(ch =0; ch < 128; ch = ch +1){
 				for (sample=0; sample < nSCA; sample = sample +1){
 					fprintf(fout, "%d  ", dati[chip][ch][sample]);
