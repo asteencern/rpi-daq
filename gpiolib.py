@@ -327,8 +327,8 @@ class gpiolib :
         r = r | (l << 7)
 
         result = int(r)
-        bcm.bcm2835_gpio_write(self.STpin, self.bcm.HIGH)
-        bcm.bcm2835_gpio_write(self.STpin, self.bcm.HIGH)
+        bcm.bcm2835_gpio_write(self.STpin, bcm.HIGH)
+        bcm.bcm2835_gpio_write(self.STpin, bcm.HIGH)
         lev = bcm.bcm2835_gpio_lev( self.ACKpin	)    # check that ACK is bcm.HIGH
         if lev == bcm.LOW:
             NoAck = True
