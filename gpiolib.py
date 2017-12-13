@@ -531,84 +531,63 @@ class gpiolib :
         return thebytes
     
 
-## program the 48 bytes configuration string into the SK2 3 bits at a time
-## for all 4 chips on Hexaboard
-## and return pointer to previous configuration string, assumes pointing to bit sequence
-#int prog384(unsigned char * pNew, unsigned char * pPrevious)
-#{
-#	int chip, bit, j, byte_index, bit_index
-#	unsigned char bit2, bit1, bit0, bits, cmd
-#	unsigned char dout
-#	for(chip = 0 chip < 4 chip=chip+1){
-#		for(bit = 0 bit < 384 bit = bit + 3){
-#			bit2 = *(pNew + sizeof(unsigned char) * bit + 0)
-#			bit1 = *(pNew + sizeof(unsigned char) * bit + 1)
-#			bit0 = *(pNew + sizeof(unsigned char) * bit + 2)
-#			bits = (bit2 << 2) | (bit1 << 1) | bit0
-#			cmd = CMD_WRPRBITS | bits
-#			send_command(cmd)
-#			dout = read_command()
-#			bits = dout & 7
-#			bit2 = (bits >> 2) & 1
-#			bit1 = (bits >> 1) & 1
-#			bit0 = bits & 1
-#			*(pPrevious + sizeof(unsigned char) * bit + 0) = bit2
-#			*(pPrevious + sizeof(unsigned char) * bit + 1) = bit1
-#			*(pPrevious + sizeof(unsigned char) * bit + 2) = bit0
-#		}
-#	}
-#	return(0)
-#}
-#
-#int progandverify384(unsigned char * pNew, unsigned char * pPrevious)
-#{
-#	prog384(pNew, pPrevious)
-#	prog384(pNew, pPrevious)
-#	return(0)
-#}
-#
-#
-#int progandverify48(unsigned char * pConfBytes, unsigned char * pPrevious)
-#{
-#	unsigned char *pNewConfBits   
-#	unsigned char *pOldConfBits 
-#	pNewConfBits = (unsigned char *) malloc(sizeof(unsigned char) * 384)
-#	pOldConfBits = (unsigned char *) malloc(sizeof(unsigned char) * 384)
-#	ConvertProgrStrBytetoBit( pConfBytes, pNewConfBits)
-#	prog384(pNewConfBits, pOldConfBits)
-#	prog384(pNewConfBits, pOldConfBits)
-#	ConvertProgrStrBittoByte(pOldConfBits, pPrevious)
-#	free(pNewConfBits)
-#	free(pOldConfBits)
-#	return(0)
-#}
-#
-#int calib_gen(){
-#  bool NoAck
-#  unsigned char lev
-#  bcm.bcm2835_gpio_write(AD0pin, bcm.LOW)
-#  bcm.bcm2835_gpio_write(AD1pin, bcm.LOW)
-#  bcm.bcm2835_gpio_write(AD2pin, bcm.LOW)
-#  bcm.bcm2835_gpio_write(AD3pin, bcm.HIGH)
-#  bcm.bcm2835_gpio_write(RWpin, bcm.LOW)
-#  bcm.bcm2835_gpio_write(STpin, bcm.LOW)
-#  bcm.bcm2835_gpio_write(STpin, bcm.LOW)
-#  lev = bcm.bcm2835_gpio_lev(	self.ACKpin	)	                # check that ACK is bcm.LOW
-#  if(lev == bcm.HIGH) {
-#    NoAck = True
-#  }
-#  bcm.bcm2835_gpio_write(STpin, bcm.HIGH)
-#  bcm.bcm2835_gpio_write(STpin, bcm.HIGH)
-#  lev = bcm.bcm2835_gpio_lev(	self.ACKpin	)	                # check that ACK is bcm.HIGH
-#  if(lev == bcm.LOW) {
-#    NoAck = True
-#  }
-#  if(NoAck){
-#    return(-1)
-#  }
-#  else {
-#    return(0)
-#  }
-#  bcm.bcm2835_gpio_write(RWpin, bcm.HIGH)
-#  
-#}
+    # program the 48 bytes configuration string into the SK2 3 bits at a time
+    # for all 4 chips on Hexaboard
+    # and return pointer to previous configuration string, assumes pointing to bit sequence
+    def prog384(self,newBits):
+        returnBits=[]
+        for chip in range(0,4):
+            returnBits=[]
+            for i in range(0,128):    #128=384/3
+                bit=i*3
+                bit2 = newBits[bit + 0]
+                bit1 = newBits[bit + 1]
+                bit0 = newBits[bit + 2]
+                bits = (bit2 << 2) | (bit1 << 1) | bit0
+                cmd = self.CMD_WRPRBITS | bits
+                self.send_command(cmd)
+                dout = self.read_command()
+                bits = dout & 7
+                bit2 = (bits >> 2) & 1
+                bit1 = (bits >> 1) & 1
+                bit0 = bits & 1
+                returnBits.append(bit2)
+                returnBits.append(bit1)
+                returnBits.append(bit0)
+        return returnBits
+
+    def progandverify384(self,inputBits):
+        outputBits=self.prog384(inputBits)
+        outputBits=self.prog384(inputBits) #why do we need to do it twice
+        return outputBits
+
+
+
+    def progandverify48(self,inputBytes):
+        inputBits=self.ConvertProgrStrBytetoBit(inputBytes)
+        outputBits=self.prog384(inputBits)
+        outputBits=self.prog384(inputBits)
+        outputBytes=self.ConvertProgrStrBittoByte(outputBits)
+        return outputBytes
+
+
+    def calib_gen(self):
+        bcm.bcm2835_gpio_write(self.AD0pin, bcm.LOW)
+        bcm.bcm2835_gpio_write(self.AD1pin, bcm.LOW)
+        bcm.bcm2835_gpio_write(self.AD2pin, bcm.LOW)
+        bcm.bcm2835_gpio_write(self.AD3pin, bcm.HIGH)
+        bcm.bcm2835_gpio_write(self.RWpin, bcm.LOW)
+        bcm.bcm2835_gpio_write(self.STpin, bcm.LOW)
+        bcm.bcm2835_gpio_write(self.STpin, bcm.LOW)
+        lev = bcm.bcm2835_gpio_lev( self.ACKpin	)    # check that ACK is bcm.LOW
+        if lev == bcm.HIGH:
+            NoAck = True
+        bcm.bcm2835_gpio_write(self.STpin, bcm.HIGH)
+        bcm.bcm2835_gpio_write(self.STpin, bcm.HIGH)
+        lev = bcm.bcm2835_gpio_lev( self.ACKpin	)    # check that ACK is bcm.HIGH
+        if lev == bcm.LOW:
+            NoAck = True
+        if NoAck==True:
+            return -1
+        else:
+            return 0
