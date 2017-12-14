@@ -78,6 +78,8 @@ res = gpio.send_command(CMD_SETSELECT | 1);
 print("\n\n####################################################\n")
 print("Save Raw Data: %s\nExternal Pulse Injection: %s\nFixed Acquisition type: %s\n\n", options.saveRawData, options.externalChargeInjection, options.acquisitionType);
 print("####################################################\n");
+
+outputBytes=[]
 if options.externalChargeInjection!=True:
     #fprintf(fout,"Configuration used for SK2\n");
     #for i in range(0,48)
@@ -110,7 +112,44 @@ else:
     #     }
     #     fprintf(fout,"\n");
     # }
-      
-res = gpio.send_command(CMD_SETSELECT);	
-sleep(0.01);
-print("\nFinished Configuration\n");
+
+outputFile = open('Data/filename.raw','wb')
+byteArray = bytearray(outputBytes)
+outputFile.write(byteArray)
+    
+res = gpio.send_command(CMD_SETSELECT)
+sleep(0.1)
+print("\nFinished Configuration\n")
+
+print("\nStart events acquisition\n")
+rawData=[]
+for i in range(0,options.nEvent):
+    print("event number ",i)
+    if options.acquisitionType=="sweep":
+        dac_ctrl = dac_fs * float(i) / float(maxevents)
+        res = gpio.set_dac_high_word((dac_ctrl & 0xFF0)>>4)
+        res = gpio.set_dac_low_word(dac_ctrl & 0x00F)
+    else:
+        res = gpio.set_dac_high_word(DAC_HIGH_WORD)
+        res = gpio.set_dac_low_word(DAC_LOW_WORD)	
+    res = gpio.send_command(CMD_RESETPULSE)
+    sleep(0.0001);
+    if options.acquisitionType=="fixed":
+        res = gpio.fixed_acquisition()
+    else:	
+        res = gpio.send_command(CMD_SETSTARTACQ | 1)
+    if options.externalChargeInjection:
+        res = gpio.send_command(CMD_SETSTARTACQ)  ## <<<+++   THIS IS THE TRIGGER ##
+    else:
+        gpio.calib_gen()
+    res = gpio.send_command(CMD_STARTCONPUL)
+    sleep(0.003)
+    res = gpio.send_command(CMD_STARTROPUL)
+    sleep(0.0001)
+    #read the raw data
+    for i in range(0,30785):
+        t = gpio.read_local_fifo()
+        rawData.append(t & 255)
+
+    byteArray = bytearray(rawData)
+    outputFile.write(byteArray)
