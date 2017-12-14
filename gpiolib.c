@@ -62,6 +62,10 @@ static unsigned char BusMode;         // global to remember status of gpio lines
 ////////////////////////////// LOW LEVEL ROUTINES //////////////////////////////
 int set_bus_init()
 {
+  if(!bcm2835_init()){
+    printf("problem in gpiolib.c method set_but_init(): bcm2835_init() failed -> exit code");
+    exit(1);
+  }
   unsigned char lev;
   bcm2835_gpio_fsel(STpin,  BCM2835_GPIO_FSEL_OUTP);     // set pin direction
   bcm2835_gpio_fsel(RWpin,  BCM2835_GPIO_FSEL_OUTP);     // set pin direction
@@ -85,6 +89,8 @@ int set_bus_init()
   BusMode = MODE_READ;                                // start in Read mode
   lev = bcm2835_gpio_lev(	ACKpin	);	                // check that ACK is HIGH
   if(lev == HIGH) {
+    // Set the pin to be an output
+    bcm2835_gpio_fsel(RWpin, BCM2835_GPIO_FSEL_OUTP);
     return(0);
   }
   else {

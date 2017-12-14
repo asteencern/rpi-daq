@@ -572,6 +572,7 @@ class gpiolib :
 
 
     def calib_gen(self):
+        NoAck = False
         bcm.bcm2835_gpio_write(self.AD0pin, bcm.LOW)
         bcm.bcm2835_gpio_write(self.AD1pin, bcm.LOW)
         bcm.bcm2835_gpio_write(self.AD2pin, bcm.LOW)
