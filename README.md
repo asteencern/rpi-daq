@@ -10,21 +10,24 @@ Software for single-module control using a Raspberry Pi
  sudo python setup.py install
  sudo python setup.py build_ext -i
  ```
- 
+
+ * Download this code
+ ```
+ HOME_DIR=/choose/wherever/you/want
+ cd ${HOME_DIR}/
+ git clone https://github.com/asteencern/rpi-daq.git
+ ```
+
  * Install bcm2835 and create shared library
 ```
-BCM_DIR=/choose/wherever/you/want
-cd ${BCM_DIR}
-wget http://www.airspayce.com/mikem/bcm2835/bcm2835-1.52.tar.gz
-tar zxvf bcm2835-1.52.tar.gz
-cd bcm2835-1.52/src
+cd ${HOME_DIR}/rpi_daq/RPi_software/bcm2835-1.52/src
 gcc -shared -o libbcm2835.so -fPIC bcm2835.c
 sudo cp libbcm2835.so /usr/local/lib/libbcm2835.so
 ```
 
 * Compile gpiolib.c and create shared library
 ```
-cd rpi-daq
+cd ${HOME_DIR}/rpi-daq
 gcc -c -I ${BCM_DIR}/bcm2835-1.52/src ${BCM_DIR}/bcm2835-1.52/src/bcm2835.c -fPIC gpiolib.c
 gcc -shared -o gpiolib.so gpiolib.o
 ```  
