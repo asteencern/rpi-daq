@@ -43,7 +43,7 @@ class rpi_daq:
         else:
             res=self.gpio.set_bus_init()
             print(res)
-            res = self.gpio.send_command(CMD_RESETPULSE);
+            res = self.gpio.send_command(self.CMD_RESETPULSE);
             print(res)
 
         print("\t open output file : ",outputFileName)
@@ -73,7 +73,7 @@ class rpi_daq:
         if self.DEBUG==True:
             print("outputBitString = ",outputBitString)
 
-        res=self.gpio.send_command(CMD_SETSELECT)
+        res=self.gpio.send_command(self.CMD_SETSELECT)
 
         print("\t write bits string in output file")
         byteArray = bytearray(outputBitString)
@@ -102,7 +102,7 @@ class rpi_daq:
             else:	
                 res = self.gpio.send_command(self.CMD_SETSTARTACQ | 1)
             if externalChargeInjection==True:
-                res = self.gpio.send_command(CMD_SETSTARTACQ)  ## <<<+++   THIS IS THE TRIGGER ##
+                res = self.gpio.send_command(self.CMD_SETSTARTACQ)  ## <<<+++   THIS IS THE TRIGGER ##
             else:
                 res = self.gpio.calib_gen()
                 res = self.gpio.send_command(self.CMD_STARTCONPUL)
@@ -128,5 +128,5 @@ class rpi_daq:
             rawdata.append((dac_ctrl>>8)&0xff)
             byteArray = bytearray(rawdata)
             self.outputFile.write(byteArray)
-            if event%100==0:
+            if event%10==0:
                 print("event number ",event)

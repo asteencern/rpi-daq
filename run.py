@@ -51,7 +51,7 @@ channelIdsMask=[int(chan) for chan in options.channelIdsMask]
 channelIdsDisableTOT=[int(chan) for chan in options.channelIdsDisableTOT]
 channelIdsDisableTOA=[int(chan) for chan in options.channelIdsDisableTOA]
 
-the_time=datetime.datetime1.now()
+the_time=datetime.datetime.now()
 fileName="./Data/Module"+str(moduleNumber)+"_"
 fileName=fileName+str(the_time.day)+"-"+str(the_time.month)+"-"+str(the_time.year)+"_"+str(the_time.hour)+"-"+str(the_time.minute)
 fileName=fileName+".raw"
