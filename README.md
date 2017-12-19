@@ -20,7 +20,7 @@ Software for single-module control using a Raspberry Pi
 
  * Install bcm2835 and create shared library
 ```
-cd ${HOME_DIR}/rpi_daq/RPi_software/bcm2835-1.52/src
+cd ${HOME_DIR}/rpi-daq/RPi_software/bcm2835-1.52/src
 gcc -shared -o libbcm2835.so -fPIC bcm2835.c
 sudo cp libbcm2835.so /usr/local/lib/libbcm2835.so
 ```
@@ -28,7 +28,7 @@ sudo cp libbcm2835.so /usr/local/lib/libbcm2835.so
 * Compile gpiolib.c and create shared library
 ```
 cd ${HOME_DIR}/rpi-daq
-gcc -c -I ${BCM_DIR}/bcm2835-1.52/src ${BCM_DIR}/bcm2835-1.52/src/bcm2835.c -fPIC gpiolib.c
+gcc -c -I ./RPi_software/bcm2835-1.52/src ./RPi_software/bcm2835-1.52/src/bcm2835.c -fPIC gpiolib.c
 gcc -shared -o gpiolib.so gpiolib.o
 mkdir Data
 ```  
