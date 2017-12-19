@@ -30,6 +30,7 @@ sudo cp libbcm2835.so /usr/local/lib/libbcm2835.so
 cd ${HOME_DIR}/rpi-daq
 gcc -c -I ${BCM_DIR}/bcm2835-1.52/src ${BCM_DIR}/bcm2835-1.52/src/bcm2835.c -fPIC gpiolib.c
 gcc -shared -o gpiolib.so gpiolib.o
+mkdir Data
 ```  
 
 * Example of acquisition:
