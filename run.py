@@ -63,10 +63,10 @@ if externalChargeInjection==True:
     the_bit_string.set_channels_for_charge_injection(channelIds)
     the_bit_string.Print()
 
-the_bit_string.set_channels_to_mask(channelIdsMask)
-the_bit_string.set_channels_to_disable_trigger_tot(channelIdsDisableTOT)
-the_bit_string.set_channels_to_disable_trigger_toa(channelIdsDisableTOA)
-the_bit_string.Print()
+# the_bit_string.set_channels_to_mask(channelIdsMask)
+# the_bit_string.set_channels_to_disable_trigger_tot(channelIdsDisableTOT)
+# the_bit_string.set_channels_to_disable_trigger_toa(channelIdsDisableTOA)
+# the_bit_string.Print()
 
 the_bits_c_uchar_p=the_bit_string.get_48_unsigned_char_p()
 print( [hex(the_bits_c_uchar_p[i]) for i in range(48)] )

@@ -41,11 +41,14 @@ class rpi_daq:
             print("bcm2835 can not init -> exit")
             sys.exit(1)
         else:
-            res=self.gpio.set_bus_init()
-            print(res)
-            res = self.gpio.send_command(self.CMD_RESETPULSE);
-            print(res)
-
+            res = self.gpio.set_bus_init()
+            ##empty the fifo:
+            for i in range(0,33000):
+                res = self.gpio.read_local_fifo();	
+            res = self.gpio.set_trigger_delay(self.TRIGGER_DELAY);
+            res = self.gpio.send_command(self.CMD_RSTBPULSE);
+            res = self.gpio.send_command(self.CMD_SETSELECT | 1);
+ 
         print("\t open output file : ",outputFileName)
         self.outputFile = open(outputFileName,'wb')
 
@@ -74,6 +77,7 @@ class rpi_daq:
             print("outputBitString = ",outputBitString)
 
         res=self.gpio.send_command(self.CMD_SETSELECT)
+        sleep(0.01)
 
         print("\t write bits string in output file")
         byteArray = bytearray(outputBitString)
@@ -95,20 +99,20 @@ class rpi_daq:
             else:
                 res = self.gpio.set_dac_high_word(self.DAC_HIGH_WORD)
                 res = self.gpio.set_dac_low_word(self.DAC_LOW_WORD)	
-                res = self.gpio.send_command(self.CMD_RESETPULSE)
+            res = self.gpio.send_command(self.CMD_RESETPULSE)
             sleep(0.0001);
             if acquisitionType=="fixed":
                 res = self.gpio.fixed_acquisition()
             else:	
                 res = self.gpio.send_command(self.CMD_SETSTARTACQ | 1)
-            if externalChargeInjection==True:
-                res = self.gpio.send_command(self.CMD_SETSTARTACQ)  ## <<<+++   THIS IS THE TRIGGER ##
-            else:
-                res = self.gpio.calib_gen()
-                res = self.gpio.send_command(self.CMD_STARTCONPUL)
-                sleep(0.003)
-                res =self.gpio.send_command(self.CMD_STARTROPUL)
-                sleep(0.0001)
+                if externalChargeInjection==True:
+                    res = self.gpio.send_command(self.CMD_SETSTARTACQ)  ## <<<+++   THIS IS THE TRIGGER ##
+                else:
+                    res = self.gpio.calib_gen()
+            res = self.gpio.send_command(self.CMD_STARTCONPUL)
+            sleep(0.003)
+            res =self.gpio.send_command(self.CMD_STARTROPUL)
+            sleep(0.0001)
 
             #read and write the raw data
             rawdata=[]
@@ -121,7 +125,7 @@ class rpi_daq:
                     rawdata.append( byte )
             else:
                 for i in range(0,30785):
-                    t = gpio.read_local_fifo()
+                    t = self.gpio.read_local_fifo()
                     rawdata.append(t & 0xff)
 
             rawdata.append(dac_ctrl&0xff)
