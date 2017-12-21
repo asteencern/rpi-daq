@@ -55,7 +55,7 @@ the_time=datetime.datetime.now()
 fileName="./Data/Module"+str(moduleNumber)+"_"
 fileName=fileName+str(the_time.day)+"-"+str(the_time.month)+"-"+str(the_time.year)+"_"+str(the_time.hour)+"-"+str(the_time.minute)
 fileName=fileName+".raw"
-theDaq=rpi_daq.rpi_daq(fileName)
+theDaq=rpi_daq.rpi_daq(fileName,True)
 
 the_bit_string=sk2conf.bit_string()
 the_bit_string.Print()
