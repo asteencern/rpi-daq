@@ -2,7 +2,7 @@
 daq_options:
  compressRawData: yes
  moduleNumber: 63
- nEvent: 100
+ nEvent: 10
  externalChargeInjection: yes
  acquisitionType: standard
  channelIds: [10,20]

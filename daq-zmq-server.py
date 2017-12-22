@@ -1,6 +1,6 @@
 import zmq
 import yaml
-from random import randrange
+import rpi_daq, unpacker, datetime
 import skiroc2cms_bit_string as sk2conf
 import ctypes
 
@@ -29,7 +29,7 @@ if __name__ == "__main__":
     daq_options=conf.yaml_opt['daq_options']
     
     theDaq=rpi_daq.rpi_daq()
-    
+
     try:
         while True:
             string = socket.recv()
@@ -59,9 +59,9 @@ if __name__ == "__main__":
                 
             elif content[0] == "PROCESS_EVENT":
                 rawdata=theDaq.processEvent(daq_options['compressRawData'])
-                data=""
+                data=" "
                 for i in rawdata:
-                    data=data+" "+hex(i)
+                    data=data+hex(i)+" "
                 socket.send(data)
     except KeyboardInterrupt:
         print('\nClosing server')

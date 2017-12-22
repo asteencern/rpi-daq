@@ -1,6 +1,7 @@
-import sys
+import yaml
 import zmq,time
 import bitarray
+import unpacker, datetime
 
 class yaml_config:
     yaml_opt=yaml.YAMLObject()
@@ -33,7 +34,7 @@ if __name__ == "__main__":
     the_config=socket.recv()
     print("Returned config:\n%s"%the_config)
 
-            
+    the_time=datetime.datetime.now()
     fileName="./Data/Module"+str(daq_options['moduleNumber'])+"_"
     fileName=fileName+str(the_time.day)+"-"+str(the_time.month)+"-"+str(the_time.year)+"_"+str(the_time.hour)+"-"+str(the_time.minute)
     fileName=fileName+".raw"
@@ -44,21 +45,28 @@ if __name__ == "__main__":
     socket.send(cmd)
     return_bitstring = socket.recv()
     print("Returned bit string = %s" % return_bitstring)
+    bitstring=[int(i,16) for i in return_bitstring.split()]
     print("\t write bits string in output file")
-    byteArray = bytearray(outputBitString)
+    byteArray = bytearray(bitstring)
     outputFile.write(byteArray)
     
+    data_unpacker=unpacker.unpacker()
     for i in range(0,daq_options['nEvent']):
         cmd="PROCESS_EVENT"
         socket.send(cmd)
         str_data=socket.recv()
-        data=str_data.split()
-        print "Size of the data = "+str(len(data))+" bytes"
-        message=""
-        for i in range(0,50):
-            message=message+" "+data[i]
-            message=message+"\t"+data[len(data)-1]
-            print message
+        rawdata=str_data.split()
+        print "Size of the data = "+str(len(rawdata))+" bytes"
+        data=[int(i,16) for i in rawdata]
+        data_unpacker.unpack(data)
+        data_unpacker.showData(i)
+        byteArray = bytearray(data)
+        outputFile.write(byteArray)
+        # message=""
+        # for i in range(0,50):
+        #     message=message+" "+data[i]
+        #     message=message+"\t"+data[len(data)-1]
+        #     print message
 
 
     socket.close()
