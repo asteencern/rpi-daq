@@ -26,6 +26,7 @@ class rpi_daq:
     acquisitionType="standard"
     externalChargeInjection=False
     eventID=0
+    nEvent=0
     
     def __init__(self,DAC_HIGH_WORD=0x42,DAC_LOW_WORD=0x0A,TRIGGER_DELAY=0x07):
         print("Init rpi-daq")
@@ -51,12 +52,13 @@ class rpi_daq:
 
     ##########################################################
 
-    def configure(self,bit_string,acquisitionType,externalChargeInjection):
+    def configure(self,bit_string,acquisitionType,externalChargeInjection,nEvent):
         print("Configure rpi-daq")
 
         self.acquisitionType=acquisitionType
         self.externalChargeInjection=externalChargeInjection
         self.eventID=0
+        self.nEvent=nEvent
         
         print "\t send bits string to chips:\t",
         outputBitString=(ctypes.c_ubyte*48)()
@@ -90,7 +92,7 @@ class rpi_daq:
         dac_ctrl=0
         dac_fs=0xFFF
         if self.acquisitionType=="sweep":
-            dac_ctrl = int(dac_fs * float(eventID) / float(nEvent))
+            dac_ctrl = int(dac_fs * float(self.eventID) / float(self.nEvent))
             res = self.gpio.set_dac_high_word((dac_ctrl & 0xFF0)>>4)
             res = self.gpio.set_dac_low_word(dac_ctrl & 0x00F)
         else:
@@ -126,6 +128,13 @@ class rpi_daq:
             for i in range(0,30784):
                 t = self.gpio.read_local_fifo()
                 rawdata.append(t & 0xff)
+
+        if self.externalChargeInjection==True:
+            rawdata.append(dac_ctrl&0xff)
+            rawdata.append((dac_ctrl>>8)&0xff)
+        else :
+            rawdata.append(0xab)
+            rawdata.append(0xcd)
 
         return rawdata
     

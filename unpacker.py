@@ -1,6 +1,7 @@
 class unpacker:
     compressedRawData=True
     sk2cms_data=[]
+    rollMask=0
 
     def __init__(self,compressedRawData=True):
         self.compressedRawData=compressedRawData
@@ -19,13 +20,13 @@ class unpacker:
         binary |= (gray ^ (binary >> 1)) & (1 << 2)
         binary |= (gray ^ (binary >> 1)) & (1 << 1)
         binary |= (gray ^ (binary >> 1)) & (1 << 0)
-        return result;
+        return binary;
         
         
     def unpack(self,rawdata):
         #decode raw data :
         ev=[ [0 for i in range(1924)] for sk in range(4) ]
-        if self.compressRawData==False:
+        if self.compressedRawData==False:
             for i in range(1924):
                 for j in range(16):
                     x = rawdata[i*16 + j]
@@ -44,18 +45,18 @@ class unpacker:
 
         for sk in range(4):
             for i in range(128*15):
-                ev[sk][i] = grayToBinary(ev[sk][i] & 0x0FFF)
+                ev[sk][i] = self.grayToBinary(ev[sk][i] & 0x0FFF)
             
-            
+        self.rollMask=ev[sk][1920]            
         self.sk2cms_data=[[[0 for sca in range(15)] for ch in range(128)] for sk in range(4)]
         for sk in range(4):
             for ch in range(128):
                 for sca in range(0,15):
                     self.sk2cms_data[sk][ch][sca] = ev[sk][sca*128+ch]
 
-    def showData(self):
+    def showData(self,eventID):
         for sk in range(4):
-            print "Event = "+str(event)+"\t Chip = "+str(sk)+"\t RollMask = "+hex(ev[sk][1920])+"\t DacInj = ",str(dac_ctrl)
+            print "Event = "+str(eventID)+"\t Chip = "+str(sk)+"\t RollMask = "+hex(self.rollMask)
             for ch in range(128):
                 stream=""
                 for sca in range(15):

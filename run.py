@@ -72,29 +72,23 @@ fileName="./Data/Module"+str(moduleNumber)+"_"
 fileName=fileName+str(the_time.day)+"-"+str(the_time.month)+"-"+str(the_time.year)+"_"+str(the_time.hour)+"-"+str(the_time.minute)
 fileName=fileName+".raw"
 theDaq=rpi_daq.rpi_daq()
-print("\t open output file : ",outputFileName)
+print("\t open output file : ",fileName)
 outputFile = open(fileName,'wb')
 
-outputBitString=theDaq.configure(the_bits_c_uchar_p)
+outputBitString=theDaq.configure(the_bits_c_uchar_p,acquisitionType,externalChargeInjection,nEvent)
 print("\t write bits string in output file")
 byteArray = bytearray(outputBitString)
 outputFile.write(byteArray)
 
 data_unpacker=unpacker.unpacker()
-for i in range(nEvent):
+for event in range(nEvent):
     rawdata=theDaq.processEvent(compressRawData)
 
-    data_unpacker.unpack(rawData)
-    data_unpacker.showData()
+    data_unpacker.unpack(rawdata)
+    data_unpacker.showData(event)
     
-    if externalChargeInjection==True:
-        rawdata.append(dac_ctrl&0xff)
-        rawdata.append((dac_ctrl>>8)&0xff)
-    else :
-        rawdata.append(0xab)
-        rawdata.append(0xcd)
-        byteArray = bytearray(rawdata)
-        outputFile.write(byteArray)
+    byteArray = bytearray(rawdata)
+    outputFile.write(byteArray)
         
     if event%10==0:
         print("event number ",event)
