@@ -1,12 +1,14 @@
 ---
 daq_options:
  compressRawData: yes
- moduleNumber: 63
- nEvent: 10
- externalChargeInjection: yes
+ nEvent: 1000
+ externalChargeInjection: no
  acquisitionType: standard
- channelIds: [10,20]
- channelIdsToMask: [22]
- channelIdsDisableTOT: [22]
- channelIdsDisableTOA: [22]
+ channelIds: []
+ channelIdsToMask: []
+ channelIdsDisableTOT: []
+ channelIdsDisableTOA: []
+glb_options:
+ moduleNumber: 63_NoHV
+ outputPath: data
 ...

@@ -54,7 +54,7 @@ class rpi_daq:
 
     ##########################################################
 
-    def configure(self,bit_string,yaml_daq_options):
+    def configure(self,bit_string,yaml_options):
         print("Configure rpi-daq")
 
         self.eventID=0
