@@ -94,8 +94,11 @@ class rpi_daq:
         dac_fs=0xFFF
         if self.daq_options['acquisitionType']=="sweep":
             dac_ctrl = int(dac_fs * float(self.eventID) / float(self.daq_options['nEvent']))
+            print("dac_ctrl = %d" % dac_ctrl)
             res = self.gpio.set_dac_high_word((dac_ctrl & 0xFF0)>>4)
+            print("dac_high_word = %d" % ((dac_ctrl & 0xFF0)>>4))
             res = self.gpio.set_dac_low_word(dac_ctrl & 0x00F)
+            print("dac_low_word = %d" % (dac_ctrl & 0x00F))
         else:
             res = self.gpio.set_dac_high_word(self.DAC_HIGH_WORD)
             res = self.gpio.set_dac_low_word(self.DAC_LOW_WORD)	
@@ -137,5 +140,6 @@ class rpi_daq:
             rawdata.append(0xab)
             rawdata.append(0xcd)
 
+        self.eventID=self.eventID+1
         return rawdata
     
