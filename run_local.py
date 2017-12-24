@@ -21,7 +21,7 @@ if __name__ == "__main__":
     daq_options=conf.yaml_opt['daq_options']
     glb_options=conf.yaml_opt['glb_options']
 
-    print "daq options = "+yaml_dump(daq_options)
+    print "daq options = "+yaml.dump(daq_options)
     print "Global options = "+yaml.dump(glb_options)
 
     the_bit_string=sk2conf.bit_string()
@@ -34,7 +34,7 @@ if __name__ == "__main__":
             print("Option channelIds should not be empty if charge injection is set")
         
 
-    if len(daq_options['channelIdsMask'])>0:
+    if len(daq_options['channelIdsToMask'])>0:
         the_bit_string.set_channels_to_mask(daq_options['channelIdsMask'])
         
     if len(daq_options['channelIdsDisableTOT'])>0:
@@ -48,7 +48,7 @@ if __name__ == "__main__":
 
 
     the_time=datetime.datetime.now()
-    fileName="./Data/Module"+str(glb_options['moduleNumber'])+"_"
+    fileName="./data/Module"+str(glb_options['moduleNumber'])+"_"
     fileName=fileName+str(the_time.day)+"-"+str(the_time.month)+"-"+str(the_time.year)+"_"+str(the_time.hour)+"-"+str(the_time.minute)
     fileName=fileName+".raw"
     theDaq=rpi_daq.rpi_daq()
@@ -62,7 +62,7 @@ if __name__ == "__main__":
 
     data_unpacker=unpacker.unpacker(daq_options['compressRawData'])
     for event in range(daq_options['nEvent']):
-        rawdata=theDaq.processEvent(daq_options['compressRawData'])
+        rawdata=theDaq.processEvent()
         data_unpacker.unpack(rawdata)
         data_unpacker.showData(event)
     
