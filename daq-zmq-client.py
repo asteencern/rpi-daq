@@ -26,7 +26,7 @@ if __name__ == "__main__":
     parser = OptionParser()
     parser.add_option("-d", "--externalChargeInjection", dest="externalChargeInjection",action="store_true",
                       help="set to use external injection",default=False)
-    parser.add_option("-e", "--acquisitionType", dest="acquisitionType",choices=["standard","sweep","fixed"],
+    parser.add_option("-e", "--acquisitionType", dest="acquisitionType",choices=["standard","sweep","fixed","const_inj"],
                       help="method for injection", default="standard")
     parser.add_option('-f', '--channelIds', dest="channelIds",action="callback",type=str,
                       help="channel Ids for charge injection", callback=get_comma_separated_args, default=[])
@@ -37,7 +37,7 @@ if __name__ == "__main__":
     conf.yaml_opt['daq_options']['acquisitionType']=options.acquisitionType
     conf.yaml_opt['daq_options']['externalChargeInjection']=options.externalChargeInjection
     for i in options.channelIds:
-        conf.yaml_opt['daq_options']['channelIds'].append(i)
+        conf.yaml_opt['daq_options']['channelIds'].append(int(i))
     
     daq_options=conf.yaml_opt['daq_options']
     glb_options=conf.yaml_opt['glb_options']
