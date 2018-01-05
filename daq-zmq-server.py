@@ -11,7 +11,7 @@ if __name__ == "__main__":
 
     daq_options=yaml.YAMLObject()
     
-    theDaq=rpi_daq.rpi_daq(daq_options)
+    theDaq=0
 
     try:
         while True:
