@@ -9,6 +9,7 @@ daq_options:
  channelIdsDisableTOT: []
  channelIdsDisableTOA: []
  injectionDAC: 1000
+ pulseDelay: 80
 glb_options:
  moduleNumber: 63_NoHV
  outputRawDataPath: data
