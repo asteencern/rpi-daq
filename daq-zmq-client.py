@@ -72,24 +72,26 @@ if __name__ == "__main__":
         print "WRONG STATUS -> exit()"
         exit()
 
-    the_time=datetime.datetime.now()
-    
-    if glb_options['storeYamlFile']==True:
-        yamlFileName=glb_options['outputYamlPath']+"/Module"+str(glb_options['moduleNumber'])+"_"
-        yamlFileName=yamlFileName+str(the_time.day)+"-"+str(the_time.month)+"-"+str(the_time.year)+"_"+str(the_time.hour)+"-"+str(the_time.minute)
-        yamlFileName=yamlFileName+".yaml"
-        if options.dataNotSaved==False:
-            print("save yaml file : ",yamlFileName)
-            conf.dumpToYaml(yamlFileName)
-    
-    rawFileName=glb_options['outputRawDataPath']+"/Module"+str(glb_options['moduleNumber'])+"_"
-    rawFileName=rawFileName+str(the_time.day)+"-"+str(the_time.month)+"-"+str(the_time.year)+"_"+str(the_time.hour)+"-"+str(the_time.minute)
-    rawFileName=rawFileName+".raw"
     outputFile=0
     if options.dataNotSaved==False:
-        print("open output file : ",rawFileName)
-        outputFile = open(rawFileName,'wb')
-    
+        rawFileName=glb_options['outputRawDataPath']+"/Module"+str(glb_options['moduleNumber'])+"_"
+        while True:
+            the_time=datetime.datetime.now()
+            rawFileName=rawFileName+str(the_time.day)+"-"+str(the_time.month)+"-"+str(the_time.year)+"_"+str(the_time.hour)+"-"+str(the_time.minute)
+            rawFileName=rawFileName+".raw"
+            if os.path.exists(file_path):
+                continue
+            else
+                print("open output file : ",rawFileName)
+                outputFile = open(rawFileName,'wb')
+                if glb_options['storeYamlFile']==True:
+                    yamlFileName=glb_options['outputYamlPath']+"/Module"+str(glb_options['moduleNumber'])+"_"
+                    yamlFileName=yamlFileName+str(the_time.day)+"-"+str(the_time.month)+"-"+str(the_time.year)+"_"+str(the_time.hour)+"-"+str(the_time.minute)
+                    yamlFileName=yamlFileName+".yaml"
+                    print("save yaml file : ",yamlFileName)
+                    conf.dumpToYaml(yamlFileName)
+                break
+            
     cmd="CONFIGURE"
     print cmd
     socket.send(cmd)
