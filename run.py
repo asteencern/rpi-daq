@@ -2,9 +2,9 @@
 ## example : python run.py --moduleNumber=63 --nEvent=1000 --acquisitionType=sweep --externalChargeInjection --channelIds=0,10,50,34 --compressRawData --channelIdsMask=22 --channelIdsDisableTOT=22  --channelIdsDisableTOA=22
 
 from optparse import OptionParser
-from time import sleep
-import rpi_daq, datetime
+import rpi_daq, unpacker, datetime
 import skiroc2cms_bit_string as sk2conf
+import ctypes
 
 def get_comma_separated_args(option, opt, value, parser):
     setattr(parser.values, option.dest, value.split(','))
@@ -41,6 +41,7 @@ parser.add_option('-j', '--channelIdsDisableTOA', dest="channelIdsDisableTOA",ac
 (options, args) = parser.parse_args()
 print(options)
 
+DEBUG=False
 compressRawData=options.compressRawData
 moduleNumber=options.moduleNumber
 nEvent=options.nEvent
@@ -50,12 +51,6 @@ channelIds=[int(chan) for chan in options.channelIds]
 channelIdsMask=[int(chan) for chan in options.channelIdsMask]
 channelIdsDisableTOT=[int(chan) for chan in options.channelIdsDisableTOT]
 channelIdsDisableTOA=[int(chan) for chan in options.channelIdsDisableTOA]
-
-the_time=datetime.datetime.now()
-fileName="./Data/Module"+str(moduleNumber)+"_"
-fileName=fileName+str(the_time.day)+"-"+str(the_time.month)+"-"+str(the_time.year)+"_"+str(the_time.hour)+"-"+str(the_time.minute)
-fileName=fileName+".raw"
-theDaq=rpi_daq.rpi_daq(fileName,True)
 
 the_bit_string=sk2conf.bit_string()
 the_bit_string.Print()
@@ -71,5 +66,35 @@ if externalChargeInjection==True:
 the_bits_c_uchar_p=the_bit_string.get_48_unsigned_char_p()
 print( [hex(the_bits_c_uchar_p[i]) for i in range(48)] )
 
-theDaq.configure(the_bits_c_uchar_p)
-theDaq.run(nEvent,acquisitionType,externalChargeInjection,compressRawData)
+
+the_time=datetime.datetime.now()
+fileName="./Data/Module"+str(moduleNumber)+"_"
+fileName=fileName+str(the_time.day)+"-"+str(the_time.month)+"-"+str(the_time.year)+"_"+str(the_time.hour)+"-"+str(the_time.minute)
+fileName=fileName+".raw"
+theDaq=rpi_daq.rpi_daq()
+print("\t open output file : ",outputFileName)
+outputFile = open(fileName,'wb')
+
+outputBitString=theDaq.configure(the_bits_c_uchar_p)
+print("\t write bits string in output file")
+byteArray = bytearray(outputBitString)
+outputFile.write(byteArray)
+
+data_unpacker=unpacker.unpacker()
+for i in range(nEvent):
+    rawdata=theDaq.processEvent(compressRawData)
+
+    data_unpacker.unpack(rawData)
+    data_unpacker.showData()
+    
+    if externalChargeInjection==True:
+        rawdata.append(dac_ctrl&0xff)
+        rawdata.append((dac_ctrl>>8)&0xff)
+    else :
+        rawdata.append(0xab)
+        rawdata.append(0xcd)
+        byteArray = bytearray(rawdata)
+        outputFile.write(byteArray)
+        
+    if event%10==0:
+        print("event number ",event)
