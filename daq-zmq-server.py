@@ -50,6 +50,12 @@ if __name__ == "__main__":
                     data=data+hex(i)+" "
                 socket.send(data)
 
+            elif content[0] == "END_OF_RUN":
+                socket.send("CLOSING_SERVER")
+                socket.close()
+                context.term()
+                break
+                
     except KeyboardInterrupt:
         print('\nClosing server')
         socket.close()

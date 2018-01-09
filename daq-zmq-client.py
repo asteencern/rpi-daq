@@ -1,7 +1,7 @@
-import yaml
-import zmq,time
+import zmq,yaml
+import os,time,datetime
 import bitarray
-import unpacker, datetime
+import unpacker
 
 class yaml_config:
     yaml_opt=yaml.YAMLObject()
@@ -18,10 +18,12 @@ class yaml_config:
             yaml.dump(self.yaml_opt,fout)
         
 if __name__ == "__main__":
+    os.system("ssh -T pi@rpi-testboard-27-b1.cern.ch \"nohup python arnaud-dev/rpi-daq/daq-zmq-server.py > log.log 2>&1& \"")
+    
     context = zmq.Context()
     socket = context.socket(zmq.REQ)
     print("Send request to server")
-    socket.connect("tcp://localhost:5555")
+    socket.connect("tcp://194.12.171.221:5555")
 
     conf=yaml_config()
     daq_options=conf.yaml_opt['daq_options']
@@ -71,5 +73,7 @@ if __name__ == "__main__":
         byteArray = bytearray(data)
         outputFile.write(byteArray)
 
-    socket.close()
-    context.term()
+    socket.send("END_OF_RUN")
+    if socket.recv()=="CLOSING_SERVER":
+        socket.close()
+        context.term()
