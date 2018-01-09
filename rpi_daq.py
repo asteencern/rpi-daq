@@ -1,5 +1,6 @@
 import ctypes
 import sys
+import yaml
 from time import sleep
 
 class rpi_daq:
@@ -27,6 +28,7 @@ class rpi_daq:
     externalChargeInjection=False
     eventID=0
     nEvent=0
+    daq_options=yaml.YAMLObject()
     
     def __init__(self,DAC_HIGH_WORD=0x42,DAC_LOW_WORD=0x0A,TRIGGER_DELAY=0x07):
         print("Init rpi-daq")
@@ -52,13 +54,11 @@ class rpi_daq:
 
     ##########################################################
 
-    def configure(self,bit_string,acquisitionType,externalChargeInjection,nEvent):
+    def configure(self,bit_string,yaml_daq_options):
         print("Configure rpi-daq")
 
-        self.acquisitionType=acquisitionType
-        self.externalChargeInjection=externalChargeInjection
         self.eventID=0
-        self.nEvent=nEvent
+        self.daq_options=yaml_options
         
         print "\t send bits string to chips:\t",
         outputBitString=(ctypes.c_ubyte*48)()
@@ -87,12 +87,12 @@ class rpi_daq:
 
     ##########################################################
 
-    def processEvent(self,compressRawData=True):
+    def processEvent(self):
         print("Start events acquisition")
         dac_ctrl=0
         dac_fs=0xFFF
-        if self.acquisitionType=="sweep":
-            dac_ctrl = int(dac_fs * float(self.eventID) / float(self.nEvent))
+        if self.daq_options['acquisitionType']=="sweep":
+            dac_ctrl = int(dac_fs * float(self.eventID) / float(self.daq_options['nEvent']))
             res = self.gpio.set_dac_high_word((dac_ctrl & 0xFF0)>>4)
             res = self.gpio.set_dac_low_word(dac_ctrl & 0x00F)
         else:
@@ -101,11 +101,11 @@ class rpi_daq:
 
         res = self.gpio.send_command(self.CMD_RESETPULSE)
         sleep(0.0001);
-        if self.acquisitionType=="fixed":
+        if self.daq_options['acquisitionType']=="fixed":
             res = self.gpio.fixed_acquisition()
         else:
             res = self.gpio.send_command(self.CMD_SETSTARTACQ | 1)
-            if self.externalChargeInjection==False:
+            if self.daq_options['externalChargeInjection']==False:
                 res = self.gpio.send_command(self.CMD_SETSTARTACQ)  ## <<<+++   THIS IS THE TRIGGER ##
             else:
                 res = self.gpio.calib_gen()
@@ -117,7 +117,7 @@ class rpi_daq:
 
         rawdata=[]
         t = self.gpio.read_local_fifo()
-        if compressRawData==True:
+        if self.daq_options['compressRawData']==True:
             for i in range(0,15392):
                 t = self.gpio.read_local_fifo()
                 byte=(t & 0xf)<<4
@@ -129,7 +129,7 @@ class rpi_daq:
                 t = self.gpio.read_local_fifo()
                 rawdata.append(t & 0xff)
 
-        if self.externalChargeInjection==True:
+        if self.daq_options['externalChargeInjection']==True:
             rawdata.append(dac_ctrl&0xff)
             rawdata.append((dac_ctrl>>8)&0xff)
         else :

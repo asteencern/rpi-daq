@@ -9,7 +9,6 @@ class yaml_config:
     def __init__(self,fname="default-config.yaml"):
         with open(fname) as fin:
             self.yaml_opt=yaml.safe_load(fin)
-        #print yaml.dump(self.yaml_opt)
             
     def dump(self):
         return yaml.dump(self.yaml_opt)
@@ -24,15 +23,20 @@ if __name__ == "__main__":
     print("Send request to server")
     socket.connect("tcp://localhost:5555")
 
-
     conf=yaml_config()
     daq_options=conf.yaml_opt['daq_options']
 
-    cmd="READ_CONFIG default-config.yaml"
-    print cmd    
+    cmd="DAQ_CONFIG"
+    print cmd
     socket.send(cmd)
-    the_config=socket.recv()
-    print("Returned config:\n%s"%the_config)
+    status=socket.recv()
+    if status=="READY_FOR_CONFIG":
+        socket.send(conf.dump())
+        the_config=socket.recv()
+        print("Returned DAQ_CONFIG:\n%s"%the_config)
+    else:
+        print "WRONG STATUS -> exit()"
+        exit()
 
     the_time=datetime.datetime.now()
     fileName="./Data/Module"+str(daq_options['moduleNumber'])+"_"
@@ -40,6 +44,7 @@ if __name__ == "__main__":
     fileName=fileName+".raw"
     print("\t open output file : ",fileName)
     outputFile = open(fileName,'wb')
+
     cmd="CONFIGURE"
     print cmd
     socket.send(cmd)
@@ -62,12 +67,6 @@ if __name__ == "__main__":
         data_unpacker.showData(i)
         byteArray = bytearray(data)
         outputFile.write(byteArray)
-        # message=""
-        # for i in range(0,50):
-        #     message=message+" "+data[i]
-        #     message=message+"\t"+data[len(data)-1]
-        #     print message
-
 
     socket.close()
     context.term()
