@@ -23,7 +23,7 @@ class rpi_daq:
     DAC_LOW_WORD      = 0x0A
     TRIGGER_DELAY     = 0x07# 0x00 to 0x07
     bcmlib=ctypes.CDLL("/usr/local/lib/libbcm2835.so", mode = ctypes.RTLD_GLOBAL)
-    gpio=ctypes.CDLL("./gpiolib.so")
+    gpio=ctypes.CDLL("/usr/local/lib/gpiolib.so")
     acquisitionType="standard"
     externalChargeInjection=False
     eventID=0

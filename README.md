@@ -25,15 +25,21 @@ gcc -shared -o libbcm2835.so -fPIC bcm2835.c
 sudo cp libbcm2835.so /usr/local/lib/libbcm2835.so
 ```
 
+* Install python-yaml (if not yet installed)
+```
+sudo apt-get install python-yaml
+```  
+
 * Compile gpiolib.c and create shared library
 ```
 cd ${HOME_DIR}/rpi-daq
 gcc -c -I ./RPi_software/bcm2835-1.52/src ./RPi_software/bcm2835-1.52/src/bcm2835.c -fPIC gpiolib.c
 gcc -shared -o gpiolib.so gpiolib.o
+sudo cp gpiolib.so /usr/local/lib/gpiolib.so
 mkdir Data
 ```  
 
 * Example of acquisition:
 ```
-python run.py --moduleNumber=63 --nEvent=1000 --acquisitionType=sweep --externalChargeInjection --channelIds=0,10,50,34 --compressRawData --channelIdsMask=22 --channelIdsDisableTOT=22  --channelIdsDisableTOA=22
+python run_local.py
 ```
