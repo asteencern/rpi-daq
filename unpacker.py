@@ -30,9 +30,10 @@ class unpacker:
             for i in range(1924):
                 for j in range(16):
                     x = rawdata[i*16 + j]
-                    x = x & 0xf
+                    x = x&0xf
                     for sk in range(4):
-                        ev[sk][i] = ev[sk][i] | (((x >> (3 - sk) ) & 1) << (15 - j))
+                        ev[sk][i] = ev[sk][i] | (((x >> (3-sk) ) & 1) << (15 - j))
+
         else:
             for i in range(1924):
                 for j in range(8):

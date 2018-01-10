@@ -46,9 +46,10 @@ class rpi_daq:
             ##empty the fifo:
             for i in range(0,33000):
                 res = self.gpio.read_local_fifo();	
-                res = self.gpio.set_trigger_delay(self.TRIGGER_DELAY);
-                res = self.gpio.send_command(self.CMD_RSTBPULSE);
-                res = self.gpio.send_command(self.CMD_SETSELECT | 1);
+
+            res = self.gpio.set_trigger_delay(self.TRIGGER_DELAY);
+            res = self.gpio.send_command(self.CMD_RSTBPULSE);
+            res = self.gpio.send_command(self.CMD_SETSELECT | 1);
                 
         print("Init completed")
 

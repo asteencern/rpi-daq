@@ -1,7 +1,7 @@
 ---
 daq_options:
  compressRawData: yes
- nEvent: 1000
+ nEvent: 100
  externalChargeInjection: no
  acquisitionType: standard
  channelIds: []
@@ -11,4 +11,7 @@ daq_options:
 glb_options:
  moduleNumber: 63_NoHV
  outputPath: data
+ startServerManually: no
+ serverIpAdress: 194.12.171.221
+ serverCodePath: /home/pi/arnaud-dev/rpi-daq
 ...

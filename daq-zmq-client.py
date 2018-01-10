@@ -18,16 +18,19 @@ class yaml_config:
             yaml.dump(self.yaml_opt,fout)
         
 if __name__ == "__main__":
-    os.system("ssh -T pi@rpi-testboard-27-b1.cern.ch \"nohup python arnaud-dev/rpi-daq/daq-zmq-server.py > log.log 2>&1& \"")
+    conf=yaml_config()
+    daq_options=conf.yaml_opt['daq_options']
+    glb_options=conf.yaml_opt['glb_options']
+
+    print "Global options = "+yaml.dump(glb_options)
+
+    if glb_options['startServerManually']==False:
+        os.system("ssh -T pi@rpi-testboard-27-b1.cern.ch \"nohup python "+glb_options['serverCodePath']+"/daq-zmq-server.py > log.log 2>&1& \"")
     
     context = zmq.Context()
     socket = context.socket(zmq.REQ)
     print("Send request to server")
-    socket.connect("tcp://194.12.171.221:5555")
-
-    conf=yaml_config()
-    daq_options=conf.yaml_opt['daq_options']
-    glb_options=conf.yaml_opt['glb_options']
+    socket.connect("tcp://"+glb_options['serverIpAdress']+":5555")
 
     cmd="DAQ_CONFIG"
     print cmd
@@ -58,7 +61,7 @@ if __name__ == "__main__":
     byteArray = bytearray(bitstring)
     outputFile.write(byteArray)
     
-    data_unpacker=unpacker.unpacker()
+    data_unpacker=unpacker.unpacker(daq_options['compressRawData'])
     for i in range(0,daq_options['nEvent']):
         cmd="PROCESS_EVENT"
         socket.send(cmd)
@@ -67,7 +70,6 @@ if __name__ == "__main__":
         data=[int(j,16) for j in rawdata]
         if int(i)%10==0:
             print "event "+str(i)
-            # print "Size of the data = "+str(len(rawdata))+" bytes"
             # data_unpacker.unpack(data)
             # data_unpacker.showData(i)
         byteArray = bytearray(data)
