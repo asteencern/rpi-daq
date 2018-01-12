@@ -45,12 +45,20 @@ if __name__ == "__main__":
         exit()
 
     the_time=datetime.datetime.now()
-    fileName=glb_options['outputPath']+"/Module"+str(glb_options['moduleNumber'])+"_"
-    fileName=fileName+str(the_time.day)+"-"+str(the_time.month)+"-"+str(the_time.year)+"_"+str(the_time.hour)+"-"+str(the_time.minute)
-    fileName=fileName+".raw"
-    print("\t open output file : ",fileName)
-    outputFile = open(fileName,'wb')
-
+    
+    if glb_options['storeYamlFile']==True:
+        yamlFileName=glb_options['outputYamlPath']+"/Module"+str(glb_options['moduleNumber'])+"_"
+        yamlFileName=yamlFileName+str(the_time.day)+"-"+str(the_time.month)+"-"+str(the_time.year)+"_"+str(the_time.hour)+"-"+str(the_time.minute)
+        yamlFileName=yamlFileName+".yaml"
+        print("\t save yaml file : ",yamlFileName)
+        conf.dumpToYaml(yamlFileName)
+    
+    rawFileName=glb_options['outputRawDataPath']+"/Module"+str(glb_options['moduleNumber'])+"_"
+    rawFileName=rawFileName+str(the_time.day)+"-"+str(the_time.month)+"-"+str(the_time.year)+"_"+str(the_time.hour)+"-"+str(the_time.minute)
+    rawFileName=rawFileName+".raw"
+    print("\t open output file : ",rawFileName)
+    outputFile = open(rawFileName,'wb')
+    
     cmd="CONFIGURE"
     print cmd
     socket.send(cmd)
@@ -79,3 +87,5 @@ if __name__ == "__main__":
     if socket.recv()=="CLOSING_SERVER":
         socket.close()
         context.term()
+
+

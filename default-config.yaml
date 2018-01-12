@@ -10,7 +10,9 @@ daq_options:
  channelIdsDisableTOA: []
 glb_options:
  moduleNumber: 63_NoHV
- outputPath: data
+ outputRawDataPath: data
+ outputYamlPath: yaml
+ storeYamlFile: yes
  startServerManually: no
  serverIpAdress: 194.12.171.221
  serverCodePath: /home/pi/arnaud-dev/rpi-daq

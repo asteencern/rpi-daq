@@ -48,12 +48,18 @@ if __name__ == "__main__":
 
 
     the_time=datetime.datetime.now()
-    fileName="./data/Module"+str(glb_options['moduleNumber'])+"_"
-    fileName=fileName+str(the_time.day)+"-"+str(the_time.month)+"-"+str(the_time.year)+"_"+str(the_time.hour)+"-"+str(the_time.minute)
-    fileName=fileName+".raw"
-    theDaq=rpi_daq.rpi_daq()
-    print("\t open output file : ",fileName)
-    outputFile = open(fileName,'wb')
+    if glb_options['storeYamlFile']==True:
+        yamlFileName=glb_options['outputYamlPath']+"/Module"+str(glb_options['moduleNumber'])+"_"
+        yamlFileName=yamlFileName+str(the_time.day)+"-"+str(the_time.month)+"-"+str(the_time.year)+"_"+str(the_time.hour)+"-"+str(the_time.minute)
+        yamlFileName=yamlFileName+".yaml"
+        print("\t save yaml file : ",yamlFileName)
+        conf.dumpToYaml(yamlFileName)
+    
+    rawFileName=glb_options['outputRawDataPath']+"/Module"+str(glb_options['moduleNumber'])+"_"
+    rawFileName=rawFileName+str(the_time.day)+"-"+str(the_time.month)+"-"+str(the_time.year)+"_"+str(the_time.hour)+"-"+str(the_time.minute)
+    rawFileName=rawFileName+".raw"
+    print("\t open output file : ",rawFileName)
+    outputFile = open(rawFileName,'wb')
 
     outputBitString=theDaq.configure(the_bits_c_uchar_p,daq_options)
     print("\t write bits string in output file")
