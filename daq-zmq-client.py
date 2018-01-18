@@ -2,6 +2,7 @@ import zmq,yaml
 import os,time,datetime
 import bitarray
 import unpacker
+from optparse import OptionParser
 
 class yaml_config:
     yaml_opt=yaml.YAMLObject()
@@ -17,8 +18,27 @@ class yaml_config:
         with open(fname,'w') as fout:
             yaml.dump(self.yaml_opt,fout)
         
+def get_comma_separated_args(option, opt, value, parser):
+    setattr(parser.values, option.dest, value.split(','))
+
 if __name__ == "__main__":
+
+    parser = OptionParser()
+    parser.add_option("-d", "--externalChargeInjection", dest="externalChargeInjection",action="store_true",
+                      help="set to use external injection",default=False)
+    parser.add_option("-e", "--acquisitionType", dest="acquisitionType",choices=["standard","sweep","fixed"],
+                      help="method for injection", default="standard")
+    parser.add_option('-f', '--channelIds', dest="channelIds",action="callback",type=str,
+                      help="channel Ids for charge injection", callback=get_comma_separated_args, default=[])
+    (options, args) = parser.parse_args()
+    print(options)
+
     conf=yaml_config()
+    conf.yaml_opt['daq_options']['acquisitionType']=options.acquisitionType
+    conf.yaml_opt['daq_options']['externalChargeInjection']=options.externalChargeInjection
+    for i in options.channelIds:
+        conf.yaml_opt['daq_options']['channelIds'].append(i)
+    
     daq_options=conf.yaml_opt['daq_options']
     glb_options=conf.yaml_opt['glb_options']
 
