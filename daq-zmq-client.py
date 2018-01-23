@@ -24,18 +24,23 @@ def get_comma_separated_args(option, opt, value, parser):
 if __name__ == "__main__":
 
     parser = OptionParser()
-    parser.add_option("-d", "--externalChargeInjection", dest="externalChargeInjection",action="store_true",
+    parser.add_option("-a", "--externalChargeInjection", dest="externalChargeInjection",action="store_true",
                       help="set to use external injection",default=False)
-    parser.add_option("-e", "--acquisitionType", dest="acquisitionType",choices=["standard","sweep","fixed","const_inj"],
+    parser.add_option("-b", "--acquisitionType", dest="acquisitionType",choices=["standard","sweep","fixed","const_inj"],
                       help="method for injection", default="standard")
-    parser.add_option('-f', '--channelIds', dest="channelIds",action="callback",type=str,
+    parser.add_option('-c', '--channelIds', dest="channelIds",action="callback",type=str,
                       help="channel Ids for charge injection", callback=get_comma_separated_args, default=[])
+    parser.add_option('-d','--injectionDAC',dest="injectionDAC",type="int",action="store",default=1000,
+                      help="DAC setting for injection when acquisitionType is const_inj")
+    parser.add_option('-e','--dataNotSaved',dest="dataNotSaved",action="store_true",default=False,
+                      help="set to true if you don't want to save the data (and the yaml file)")
     (options, args) = parser.parse_args()
     print(options)
 
     conf=yaml_config()
     conf.yaml_opt['daq_options']['acquisitionType']=options.acquisitionType
     conf.yaml_opt['daq_options']['externalChargeInjection']=options.externalChargeInjection
+    conf.yaml_opt['daq_options']['injectionDAC']=options.injectionDAC
     for i in options.channelIds:
         conf.yaml_opt['daq_options']['channelIds'].append(int(i))
     
@@ -70,14 +75,17 @@ if __name__ == "__main__":
         yamlFileName=glb_options['outputYamlPath']+"/Module"+str(glb_options['moduleNumber'])+"_"
         yamlFileName=yamlFileName+str(the_time.day)+"-"+str(the_time.month)+"-"+str(the_time.year)+"_"+str(the_time.hour)+"-"+str(the_time.minute)
         yamlFileName=yamlFileName+".yaml"
-        print("\t save yaml file : ",yamlFileName)
-        conf.dumpToYaml(yamlFileName)
+        if options.dataNotSaved==False:
+            print("save yaml file : ",yamlFileName)
+            conf.dumpToYaml(yamlFileName)
     
     rawFileName=glb_options['outputRawDataPath']+"/Module"+str(glb_options['moduleNumber'])+"_"
     rawFileName=rawFileName+str(the_time.day)+"-"+str(the_time.month)+"-"+str(the_time.year)+"_"+str(the_time.hour)+"-"+str(the_time.minute)
     rawFileName=rawFileName+".raw"
-    print("\t open output file : ",rawFileName)
-    outputFile = open(rawFileName,'wb')
+    outputFile=0
+    if options.dataNotSaved==False:
+        print("open output file : ",rawFileName)
+        outputFile = open(rawFileName,'wb')
     
     cmd="CONFIGURE"
     print cmd
@@ -87,7 +95,8 @@ if __name__ == "__main__":
     bitstring=[int(i,16) for i in return_bitstring.split()]
     print("\t write bits string in output file")
     byteArray = bytearray(bitstring)
-    outputFile.write(byteArray)
+    if options.dataNotSaved==False:
+        outputFile.write(byteArray)
     
     data_unpacker=unpacker.unpacker(daq_options['compressRawData'])
     for i in range(0,daq_options['nEvent']):
@@ -101,7 +110,8 @@ if __name__ == "__main__":
             # data_unpacker.unpack(data)
             # data_unpacker.showData(i)
         byteArray = bytearray(data)
-        outputFile.write(byteArray)
+        if options.dataNotSaved==False:
+            outputFile.write(byteArray)
 
     socket.send("END_OF_RUN")
     if socket.recv()=="CLOSING_SERVER":
