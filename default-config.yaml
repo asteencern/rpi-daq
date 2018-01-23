@@ -8,6 +8,7 @@ daq_options:
  channelIdsToMask: []
  channelIdsDisableTOT: []
  channelIdsDisableTOA: []
+ injectionDAC: 1000
 glb_options:
  moduleNumber: 63_NoHV
  outputRawDataPath: data

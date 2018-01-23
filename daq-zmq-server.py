@@ -11,7 +11,7 @@ if __name__ == "__main__":
 
     daq_options=yaml.YAMLObject()
     
-    theDaq=rpi_daq.rpi_daq()
+    theDaq=rpi_daq.rpi_daq(daq_options)
 
     try:
         while True:
@@ -26,7 +26,7 @@ if __name__ == "__main__":
                 yaml_conf=yaml.safe_load(yamlstring)
                 socket.send(yaml.dump(yaml_conf))
                 daq_options=yaml_conf['daq_options']
-                theDaq=rpi_daq.rpi_daq()#can modify global daq parameter here (DAC_HIGH_WORD,DAC_LOW_WORD,TRIGGER_DELAY)
+                theDaq=rpi_daq.rpi_daq(daq_options)#can modify global daq parameter here (DAC_HIGH_WORD,DAC_LOW_WORD,TRIGGER_DELAY)
 
             elif content[0] == "CONFIGURE":
                 the_bit_string=sk2conf.bit_string()
@@ -37,7 +37,7 @@ if __name__ == "__main__":
                 the_bit_string.set_channels_to_disable_trigger_tot(daq_options['channelIdsDisableTOT'])
                 the_bit_string.set_channels_to_disable_trigger_toa(daq_options['channelIdsDisableTOA'])
                 the_bits_c_uchar_p=the_bit_string.get_48_unsigned_char_p()
-                outputBitString=theDaq.configure(the_bits_c_uchar_p,daq_options)
+                outputBitString=theDaq.configure(the_bits_c_uchar_p)
                 msg=''
                 for i in range(48):
                     msg=msg+hex(outputBitString[i])+' '

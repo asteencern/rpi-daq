@@ -22,21 +22,20 @@ class rpi_daq:
     DAC_HIGH_WORD     = 0x42
     DAC_LOW_WORD      = 0x0A
     TRIGGER_DELAY     = 0x07# 0x00 to 0x07
+    PULSE_DELAY       = 0x50# minimum value = 30 (0x1e), maximum value 127
     bcmlib=ctypes.CDLL("/usr/local/lib/libbcm2835.so", mode = ctypes.RTLD_GLOBAL)
     gpio=ctypes.CDLL("/usr/local/lib/gpiolib.so")
-    acquisitionType="standard"
-    externalChargeInjection=False
     eventID=0
-    nEvent=0
     daq_options=yaml.YAMLObject()
     
-    def __init__(self,DAC_HIGH_WORD=0x42,DAC_LOW_WORD=0x0A,TRIGGER_DELAY=0x07):
+    def __init__(self,yaml_options,DAC_HIGH_WORD=0x42,DAC_LOW_WORD=0x0A,TRIGGER_DELAY=0x07):
         print("Init rpi-daq")
         
         self.DAC_HIGH_WORD     = DAC_HIGH_WORD     
         self.DAC_LOW_WORD      = DAC_LOW_WORD      
         self.TRIGGER_DELAY     = TRIGGER_DELAY
-
+        self.daq_options=yaml_options
+        
         print("\t init RPI")
         if self.bcmlib.bcm2835_init()!=1 :
             print("bcm2835 can not init -> exit")
@@ -47,7 +46,10 @@ class rpi_daq:
             for i in range(0,33000):
                 res = self.gpio.read_local_fifo();	
 
-            res = self.gpio.set_trigger_delay(self.TRIGGER_DELAY);
+            if self.daq_options['externalChargeInjection']==False:
+                res = self.gpio.set_trigger_delay(self.TRIGGER_DELAY);
+            else:
+                res = self.gpio.set_trigger_delay(self.PULSE_DELAY);
             res = self.gpio.send_command(self.CMD_RSTBPULSE);
             res = self.gpio.send_command(self.CMD_SETSELECT | 1);
                 
@@ -55,11 +57,10 @@ class rpi_daq:
 
     ##########################################################
 
-    def configure(self,bit_string,yaml_options):
+    def configure(self,bit_string):
         print("Configure rpi-daq")
 
         self.eventID=0
-        self.daq_options=yaml_options
         
         print "\t send bits string to chips:\t",
         outputBitString=(ctypes.c_ubyte*48)()
@@ -99,6 +100,13 @@ class rpi_daq:
             print("dac_high_word = %d" % ((dac_ctrl & 0xFF0)>>4))
             res = self.gpio.set_dac_low_word(dac_ctrl & 0x00F)
             print("dac_low_word = %d" % (dac_ctrl & 0x00F))
+        elif self.daq_options['acquisitionType']=="const_inj":
+            dac_ctrl = self.daq_options['injectionDAC']
+            print("dac_ctrl = %d" % dac_ctrl)
+            res = self.gpio.set_dac_high_word((dac_ctrl & 0xFF0)>>4)
+            print("dac_high_word = %d" % ((dac_ctrl & 0xFF0)>>4))
+            res = self.gpio.set_dac_low_word(dac_ctrl & 0x00F)
+            print("dac_low_word = %d" % (dac_ctrl & 0x00F))            
         else:
             res = self.gpio.set_dac_high_word(self.DAC_HIGH_WORD)
             res = self.gpio.set_dac_low_word(self.DAC_LOW_WORD)	

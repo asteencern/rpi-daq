@@ -1,6 +1,7 @@
 import datetime,ctypes,yaml
 import rpi_daq, unpacker
 import skiroc2cms_bit_string as sk2conf
+from optparse import OptionParser
 
 class yaml_config:
     yaml_opt=yaml.YAMLObject()
@@ -16,11 +17,34 @@ class yaml_config:
         with open(fname,'w') as fout:
             yaml.dump(self.yaml_opt,fout)
         
+def get_comma_separated_args(option, opt, value, parser):
+    setattr(parser.values, option.dest, value.split(','))
+
 if __name__ == "__main__":
+    
+    parser = OptionParser()
+    parser.add_option("-d", "--externalChargeInjection", dest="externalChargeInjection",action="store_true",
+                      help="set to use external injection",default=False)
+    parser.add_option("-e", "--acquisitionType", dest="acquisitionType",choices=["standard","sweep","fixed","const_inj"],
+                      help="method for injection", default="standard")
+    parser.add_option('-f', '--channelIds', dest="channelIds",action="callback",type=str,
+                      help="channel Ids for charge injection", callback=get_comma_separated_args, default=[])
+    parser.add_option('-g','--injectionDAC',dest="injectionDAC",type="int",action="store",default=1000,
+                      help="DAC setting for injection when acquisitionType is const_inj")
+    (options, args) = parser.parse_args()
+    print(options)
+
     conf=yaml_config()
+    conf.yaml_opt['daq_options']['acquisitionType']=options.acquisitionType
+    conf.yaml_opt['daq_options']['externalChargeInjection']=options.externalChargeInjection
+    conf.yaml_opt['daq_options']['injectionDAC']=options.injectionDAC
+    for i in options.channelIds:
+        conf.yaml_opt['daq_options']['channelIds'].append(int(i))
+
     daq_options=conf.yaml_opt['daq_options']
     glb_options=conf.yaml_opt['glb_options']
 
+    
     print "daq options = "+yaml.dump(daq_options)
     print "Global options = "+yaml.dump(glb_options)
 
@@ -29,20 +53,20 @@ if __name__ == "__main__":
     if daq_options['externalChargeInjection']==True:
         if len(daq_options['channelIds'])>0:
             the_bit_string.set_channels_for_charge_injection(daq_options['channelIds'])
-            the_bit_string.Print()
         else:
-            print("Option channelIds should not be empty if charge injection is set")
-        
+            print("Option channelIds should not be empty if charge injection is set")        
 
     if len(daq_options['channelIdsToMask'])>0:
-        the_bit_string.set_channels_to_mask(daq_options['channelIdsMask'])
+        the_bit_string.set_channels_to_mask(daq_options['channelIdsToMask'])
         
     if len(daq_options['channelIdsDisableTOT'])>0:
         the_bit_string.set_channels_to_disable_trigger_tot(daq_options['channelIdsDisableTOT'])
 
-    if len(daq_options['channelIdsDisableTOT'])>0:
+    if len(daq_options['channelIdsDisableTOA'])>0:
         the_bit_string.set_channels_to_disable_trigger_toa(daq_options['channelIdsDisableTOA'])
 
+
+    the_bit_string.Print()
     the_bits_c_uchar_p=the_bit_string.get_48_unsigned_char_p()
     print( [hex(the_bits_c_uchar_p[i]) for i in range(48)] )
 
@@ -61,7 +85,8 @@ if __name__ == "__main__":
     print("\t open output file : ",rawFileName)
     outputFile = open(rawFileName,'wb')
 
-    outputBitString=theDaq.configure(the_bits_c_uchar_p,daq_options)
+    theDaq=rpi_daq.rpi_daq(daq_options)
+    outputBitString=theDaq.configure(the_bits_c_uchar_p)
     print("\t write bits string in output file")
     byteArray = bytearray(outputBitString)
     outputFile.write(byteArray)
