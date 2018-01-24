@@ -34,6 +34,8 @@ if __name__ == "__main__":
                       help="DAC setting for injection when acquisitionType is const_inj")
     parser.add_option('-e','--dataNotSaved',dest="dataNotSaved",action="store_true",default=False,
                       help="set to true if you don't want to save the data (and the yaml file)")
+    parser.add_option("-f", "--pulseDelay", dest="pulseDelay",type="int",action="store",
+                      help="pulse delay (arbitrary unit) w.r.t. the trigger",default=80)
     (options, args) = parser.parse_args()
     print(options)
 
@@ -41,6 +43,7 @@ if __name__ == "__main__":
     conf.yaml_opt['daq_options']['acquisitionType']=options.acquisitionType
     conf.yaml_opt['daq_options']['externalChargeInjection']=options.externalChargeInjection
     conf.yaml_opt['daq_options']['injectionDAC']=options.injectionDAC
+    conf.yaml_opt['daq_options']['pulseDelay']=options.pulseDelay
     for i in options.channelIds:
         conf.yaml_opt['daq_options']['channelIds'].append(int(i))
     
