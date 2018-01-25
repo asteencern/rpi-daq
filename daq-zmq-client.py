@@ -74,14 +74,14 @@ if __name__ == "__main__":
 
     outputFile=0
     if options.dataNotSaved==False:
-        rawFileName=glb_options['outputRawDataPath']+"/Module"+str(glb_options['moduleNumber'])+"_"
         while True:
             the_time=datetime.datetime.now()
+            rawFileName=glb_options['outputRawDataPath']+"/Module"+str(glb_options['moduleNumber'])+"_"
             rawFileName=rawFileName+str(the_time.day)+"-"+str(the_time.month)+"-"+str(the_time.year)+"_"+str(the_time.hour)+"-"+str(the_time.minute)
             rawFileName=rawFileName+".raw"
-            if os.path.exists(file_path):
+            if os.path.exists(rawFileName):
                 continue
-            else
+            else:
                 print("open output file : ",rawFileName)
                 outputFile = open(rawFileName,'wb')
                 if glb_options['storeYamlFile']==True:
