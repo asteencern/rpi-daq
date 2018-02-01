@@ -80,7 +80,7 @@ class bit_string:
         capa=capa&0x3f
         for i in range(0,6):
             bit=(capa>>i)&1
-            self.bits[380-6+i]=bit
+            self.bits[381-6+i]=bit
 
     def Print(self):
         print(self.bits)

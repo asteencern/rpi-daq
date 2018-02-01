@@ -35,7 +35,7 @@ if __name__ == "__main__":
                     
                 if daq_options['preampFeedbackCapacitance']>63:
                     print "!!!!!!!!! WARNING :: preampFeedbackCapacitance should not be higher than 63 !!!!!!!"
-                the_bit_string.set_preamp_feedback_capacitance(daq_options['preampFeedbackCapacitance']):
+                the_bit_string.set_preamp_feedback_capacitance(daq_options['preampFeedbackCapacitance'])
                 the_bit_string.set_channels_to_mask(daq_options['channelIdsToMask'])
                 the_bit_string.set_channels_to_disable_trigger_tot(daq_options['channelIdsDisableTOT'])
                 the_bit_string.set_channels_to_disable_trigger_toa(daq_options['channelIdsDisableTOA'])
