@@ -49,7 +49,7 @@ class rpi_daq:
             if self.daq_options['externalChargeInjection']==False:
                 res = self.gpio.set_trigger_delay(self.TRIGGER_DELAY);
             else:
-                res = self.gpio.set_trigger_delay(self.PULSE_DELAY);
+                res = self.gpio.set_trigger_delay(self.daq_options['pulseDelay']);
             res = self.gpio.send_command(self.CMD_RSTBPULSE);
             res = self.gpio.send_command(self.CMD_SETSELECT | 1);
                 

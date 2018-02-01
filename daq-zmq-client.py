@@ -34,6 +34,8 @@ if __name__ == "__main__":
                       help="DAC setting for injection when acquisitionType is const_inj")
     parser.add_option('-e','--dataNotSaved',dest="dataNotSaved",action="store_true",default=False,
                       help="set to true if you don't want to save the data (and the yaml file)")
+    parser.add_option("-f", "--pulseDelay", dest="pulseDelay",type="int",action="store",
+                      help="pulse delay (arbitrary unit) w.r.t. the trigger",default=80)
     (options, args) = parser.parse_args()
     print(options)
 
@@ -41,6 +43,7 @@ if __name__ == "__main__":
     conf.yaml_opt['daq_options']['acquisitionType']=options.acquisitionType
     conf.yaml_opt['daq_options']['externalChargeInjection']=options.externalChargeInjection
     conf.yaml_opt['daq_options']['injectionDAC']=options.injectionDAC
+    conf.yaml_opt['daq_options']['pulseDelay']=options.pulseDelay
     for i in options.channelIds:
         conf.yaml_opt['daq_options']['channelIds'].append(int(i))
     
@@ -69,24 +72,26 @@ if __name__ == "__main__":
         print "WRONG STATUS -> exit()"
         exit()
 
-    the_time=datetime.datetime.now()
-    
-    if glb_options['storeYamlFile']==True:
-        yamlFileName=glb_options['outputYamlPath']+"/Module"+str(glb_options['moduleNumber'])+"_"
-        yamlFileName=yamlFileName+str(the_time.day)+"-"+str(the_time.month)+"-"+str(the_time.year)+"_"+str(the_time.hour)+"-"+str(the_time.minute)
-        yamlFileName=yamlFileName+".yaml"
-        if options.dataNotSaved==False:
-            print("save yaml file : ",yamlFileName)
-            conf.dumpToYaml(yamlFileName)
-    
-    rawFileName=glb_options['outputRawDataPath']+"/Module"+str(glb_options['moduleNumber'])+"_"
-    rawFileName=rawFileName+str(the_time.day)+"-"+str(the_time.month)+"-"+str(the_time.year)+"_"+str(the_time.hour)+"-"+str(the_time.minute)
-    rawFileName=rawFileName+".raw"
     outputFile=0
     if options.dataNotSaved==False:
-        print("open output file : ",rawFileName)
-        outputFile = open(rawFileName,'wb')
-    
+        while True:
+            the_time=datetime.datetime.now()
+            rawFileName=glb_options['outputRawDataPath']+"/Module"+str(glb_options['moduleNumber'])+"_"
+            rawFileName=rawFileName+str(the_time.day)+"-"+str(the_time.month)+"-"+str(the_time.year)+"_"+str(the_time.hour)+"-"+str(the_time.minute)
+            rawFileName=rawFileName+".raw"
+            if os.path.exists(rawFileName):
+                continue
+            else:
+                print("open output file : ",rawFileName)
+                outputFile = open(rawFileName,'wb')
+                if glb_options['storeYamlFile']==True:
+                    yamlFileName=glb_options['outputYamlPath']+"/Module"+str(glb_options['moduleNumber'])+"_"
+                    yamlFileName=yamlFileName+str(the_time.day)+"-"+str(the_time.month)+"-"+str(the_time.year)+"_"+str(the_time.hour)+"-"+str(the_time.minute)
+                    yamlFileName=yamlFileName+".yaml"
+                    print("save yaml file : ",yamlFileName)
+                    conf.dumpToYaml(yamlFileName)
+                break
+            
     cmd="CONFIGURE"
     print cmd
     socket.send(cmd)

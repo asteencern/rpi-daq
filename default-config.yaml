@@ -1,16 +1,18 @@
 ---
 daq_options:
  compressRawData: yes
- nEvent: 100
- externalChargeInjection: no
- acquisitionType: standard
- channelIds: []
- channelIdsToMask: []
- channelIdsDisableTOT: []
- channelIdsDisableTOA: []
+ nEvent: 1000
+ externalChargeInjection: yes
+ acquisitionType: sweep
+ channelIds: [10]
+ channelIdsToMask: [22]
+ channelIdsDisableTOT: [22]
+ channelIdsDisableTOA: [22]
  injectionDAC: 1000
+ pulseDelay: 72
+ preampFeedbackCapacitance: 8
 glb_options:
- moduleNumber: 63_NoHV
+ moduleNumber: 63_HV200_test
  outputRawDataPath: data
  outputYamlPath: yaml
  storeYamlFile: yes

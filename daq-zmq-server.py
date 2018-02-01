@@ -11,7 +11,7 @@ if __name__ == "__main__":
 
     daq_options=yaml.YAMLObject()
     
-    theDaq=rpi_daq.rpi_daq(daq_options)
+    theDaq=0
 
     try:
         while True:
@@ -33,6 +33,9 @@ if __name__ == "__main__":
                 if daq_options['externalChargeInjection']==True:
                     the_bit_string.set_channels_for_charge_injection(daq_options['channelIds'])
                     
+                if daq_options['preampFeedbackCapacitance']>63:
+                    print "!!!!!!!!! WARNING :: preampFeedbackCapacitance should not be higher than 63 !!!!!!!"
+                the_bit_string.set_preamp_feedback_capacitance(daq_options['preampFeedbackCapacitance']):
                 the_bit_string.set_channels_to_mask(daq_options['channelIdsToMask'])
                 the_bit_string.set_channels_to_disable_trigger_tot(daq_options['channelIdsDisableTOT'])
                 the_bit_string.set_channels_to_disable_trigger_toa(daq_options['channelIdsDisableTOA'])
