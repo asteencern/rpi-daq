@@ -1,6 +1,6 @@
 import zmq,yaml
 import os,time,datetime
-import bitarray
+import bitarray,struct
 import unpacker
 from optparse import OptionParser
 
@@ -34,6 +34,8 @@ if __name__ == "__main__":
                       help="DAC setting for injection when acquisitionType is const_inj")
     parser.add_option('-e','--dataNotSaved',dest="dataNotSaved",action="store_true",default=False,
                       help="set to true if you don't want to save the data (and the yaml file)")
+    parser.add_option("-f", "--pulseDelay", dest="pulseDelay",type="int",action="store",
+                      help="pulse delay (arbitrary unit) w.r.t. the trigger",default=72)
     (options, args) = parser.parse_args()
     print(options)
 
@@ -41,6 +43,7 @@ if __name__ == "__main__":
     conf.yaml_opt['daq_options']['acquisitionType']=options.acquisitionType
     conf.yaml_opt['daq_options']['externalChargeInjection']=options.externalChargeInjection
     conf.yaml_opt['daq_options']['injectionDAC']=options.injectionDAC
+    conf.yaml_opt['daq_options']['pulseDelay']=options.pulseDelay
     for i in options.channelIds:
         conf.yaml_opt['daq_options']['channelIds'].append(int(i))
     
@@ -50,7 +53,7 @@ if __name__ == "__main__":
     print "Global options = "+yaml.dump(glb_options)
 
     if glb_options['startServerManually']==False:
-        os.system("ssh -T pi@rpi-testboard-27-b1.cern.ch \"nohup python "+glb_options['serverCodePath']+"/daq-zmq-server.py > log.log 2>&1& \"")
+        os.system("ssh -T pi@"+glb_options['serverIpAdress']+" \"nohup python "+glb_options['serverCodePath']+"/daq-zmq-server.py > log.log 2>&1& \"")
     
     context = zmq.Context()
     socket = context.socket(zmq.REQ)
@@ -69,24 +72,31 @@ if __name__ == "__main__":
         print "WRONG STATUS -> exit()"
         exit()
 
-    the_time=datetime.datetime.now()
-    
-    if glb_options['storeYamlFile']==True:
-        yamlFileName=glb_options['outputYamlPath']+"/Module"+str(glb_options['moduleNumber'])+"_"
-        yamlFileName=yamlFileName+str(the_time.day)+"-"+str(the_time.month)+"-"+str(the_time.year)+"_"+str(the_time.hour)+"-"+str(the_time.minute)
-        yamlFileName=yamlFileName+".yaml"
-        if options.dataNotSaved==False:
-            print("save yaml file : ",yamlFileName)
-            conf.dumpToYaml(yamlFileName)
-    
-    rawFileName=glb_options['outputRawDataPath']+"/Module"+str(glb_options['moduleNumber'])+"_"
-    rawFileName=rawFileName+str(the_time.day)+"-"+str(the_time.month)+"-"+str(the_time.year)+"_"+str(the_time.hour)+"-"+str(the_time.minute)
-    rawFileName=rawFileName+".raw"
+    dataSize=30786 # 30784 + 2 for injection value
+    if daq_options['compressRawData']==True:
+            dataSize=15394 # 30784/2 + 2 for injection value
+    dataStringUnpacker=struct.Struct('B'*dataSize)
+        
     outputFile=0
     if options.dataNotSaved==False:
-        print("open output file : ",rawFileName)
-        outputFile = open(rawFileName,'wb')
-    
+        while True:
+            the_time=datetime.datetime.now()
+            rawFileName=glb_options['outputRawDataPath']+"/Module"+str(glb_options['moduleNumber'])+"_"
+            rawFileName=rawFileName+str(the_time.day)+"-"+str(the_time.month)+"-"+str(the_time.year)+"_"+str(the_time.hour)+"-"+str(the_time.minute)
+            rawFileName=rawFileName+".raw"
+            if os.path.exists(rawFileName):
+                continue
+            else:
+                print("open output file : ",rawFileName)
+                outputFile = open(rawFileName,'wb')
+                if glb_options['storeYamlFile']==True:
+                    yamlFileName=glb_options['outputYamlPath']+"/Module"+str(glb_options['moduleNumber'])+"_"
+                    yamlFileName=yamlFileName+str(the_time.day)+"-"+str(the_time.month)+"-"+str(the_time.year)+"_"+str(the_time.hour)+"-"+str(the_time.minute)
+                    yamlFileName=yamlFileName+".yaml"
+                    print("save yaml file : ",yamlFileName)
+                    conf.dumpToYaml(yamlFileName)
+                break
+            
     cmd="CONFIGURE"
     print cmd
     socket.send(cmd)
@@ -98,18 +108,17 @@ if __name__ == "__main__":
     if options.dataNotSaved==False:
         outputFile.write(byteArray)
     
-    data_unpacker=unpacker.unpacker(daq_options['compressRawData'])
-    for i in range(0,daq_options['nEvent']):
+    #data_unpacker=unpacker.unpacker(daq_options['compressRawData'])
+    for i in xrange(0,daq_options['nEvent']):
         cmd="PROCESS_EVENT"
         socket.send(cmd)
         str_data=socket.recv()
-        rawdata=str_data.split()
-        data=[int(j,16) for j in rawdata]
-        if int(i)%10==0:
+        rawdata=dataStringUnpacker.unpack(str_data)
+        if int(i)%1==0:
             print "event "+str(i)
-            # data_unpacker.unpack(data)
-            # data_unpacker.showData(i)
-        byteArray = bytearray(data)
+            #data_unpacker.unpack(rawdata)
+            #data_unpacker.showData(i)
+        byteArray = bytearray(rawdata)
         if options.dataNotSaved==False:
             outputFile.write(byteArray)
 

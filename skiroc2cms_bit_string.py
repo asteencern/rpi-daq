@@ -79,5 +79,11 @@ class bit_string:
                 c_uchar_p[i]=c_uchar_p[i]|(self.bits[i*8+j]<<(7-j))
         return c_uchar_p
             
+    def set_preamp_feedback_capacitance(self,capa):
+        capa=capa&0x3f
+        for i in range(0,6):
+            bit=(capa>>i)&1
+            self.bits[381-6+i]=bit
+
     def Print(self):
         print(self.bits)
