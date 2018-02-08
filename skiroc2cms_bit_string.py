@@ -86,7 +86,7 @@ class bit_string:
         thr=thr&0x3ff
         for i in range(0,10):
             bit=(thr>>i)&1
-            self.bits[70-i]=bit
+            self.bits[61+i]=bit
             
     def Print(self):
         print(self.bits)
