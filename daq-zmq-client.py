@@ -1,6 +1,6 @@
 import zmq,yaml
 import os,time,datetime
-import bitarray
+import bitarray,struct
 import unpacker
 from optparse import OptionParser
 
@@ -35,7 +35,7 @@ if __name__ == "__main__":
     parser.add_option('-e','--dataNotSaved',dest="dataNotSaved",action="store_true",default=False,
                       help="set to true if you don't want to save the data (and the yaml file)")
     parser.add_option("-f", "--pulseDelay", dest="pulseDelay",type="int",action="store",
-                      help="pulse delay (arbitrary unit) w.r.t. the trigger",default=80)
+                      help="pulse delay (arbitrary unit) w.r.t. the trigger",default=72)
     (options, args) = parser.parse_args()
     print(options)
 
@@ -53,7 +53,7 @@ if __name__ == "__main__":
     print "Global options = "+yaml.dump(glb_options)
 
     if glb_options['startServerManually']==False:
-        os.system("ssh -T pi@rpi-testboard-27-b1.cern.ch \"nohup python "+glb_options['serverCodePath']+"/daq-zmq-server.py > log.log 2>&1& \"")
+        os.system("ssh -T pi@"+glb_options['serverIpAdress']+" \"nohup python "+glb_options['serverCodePath']+"/daq-zmq-server.py > log.log 2>&1& \"")
     
     context = zmq.Context()
     socket = context.socket(zmq.REQ)
@@ -72,6 +72,11 @@ if __name__ == "__main__":
         print "WRONG STATUS -> exit()"
         exit()
 
+    dataSize=30786 # 30784 + 2 for injection value
+    if daq_options['compressRawData']==True:
+            dataSize=15394 # 30784/2 + 2 for injection value
+    dataStringUnpacker=struct.Struct('B'*dataSize)
+        
     outputFile=0
     if options.dataNotSaved==False:
         while True:
@@ -103,18 +108,17 @@ if __name__ == "__main__":
     if options.dataNotSaved==False:
         outputFile.write(byteArray)
     
-    data_unpacker=unpacker.unpacker(daq_options['compressRawData'])
-    for i in range(0,daq_options['nEvent']):
+    #data_unpacker=unpacker.unpacker(daq_options['compressRawData'])
+    for i in xrange(0,daq_options['nEvent']):
         cmd="PROCESS_EVENT"
         socket.send(cmd)
         str_data=socket.recv()
-        rawdata=str_data.split()
-        data=[int(j,16) for j in rawdata]
-        if int(i)%10==0:
+        rawdata=dataStringUnpacker.unpack(str_data)
+        if int(i)%1==0:
             print "event "+str(i)
-            # data_unpacker.unpack(data)
-            # data_unpacker.showData(i)
-        byteArray = bytearray(data)
+            #data_unpacker.unpack(rawdata)
+            #data_unpacker.showData(i)
+        byteArray = bytearray(rawdata)
         if options.dataNotSaved==False:
             outputFile.write(byteArray)
 
