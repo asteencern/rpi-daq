@@ -109,19 +109,34 @@ if __name__ == "__main__":
         outputFile.write(byteArray)
     
     #data_unpacker=unpacker.unpacker(daq_options['compressRawData'])
+
+    # for i in xrange(0,daq_options['nEvent']):
+    #     cmd="PROCESS_EVENT"
+    #     socket.send(cmd)
+    #     str_data=socket.recv()
+    #     rawdata=dataStringUnpacker.unpack(str_data)
+    #     print("Receive event %d",i)
+    #     #data_unpacker.unpack(rawdata)
+    #     #data_unpacker.showData(i)
+    #     byteArray = bytearray(rawdata)
+    #     if options.dataNotSaved==False:
+    #         outputFile.write(byteArray)
+
+    cmd="PROCESS_AND_PUSH_N_EVENTS"
+    socket.send(cmd)
+    mes=socket.recv()
+    print(mes)
+    puller=context.socket(zmq.PULL)
+    puller.connect("tcp://"+glb_options['serverIpAdress']+":5556")
     for i in xrange(0,daq_options['nEvent']):
-        cmd="PROCESS_EVENT"
-        socket.send(cmd)
-        str_data=socket.recv()
+        str_data=puller.recv()
         rawdata=dataStringUnpacker.unpack(str_data)
-        if int(i)%1==0:
-            print "event "+str(i)
-            #data_unpacker.unpack(rawdata)
-            #data_unpacker.showData(i)
+        print("Receive event %d",i)
         byteArray = bytearray(rawdata)
         if options.dataNotSaved==False:
             outputFile.write(byteArray)
-
+    puller.close()
+    
     socket.send("END_OF_RUN")
     if socket.recv()=="CLOSING_SERVER":
         socket.close()
