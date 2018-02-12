@@ -1,5 +1,5 @@
 import zmq,yaml
-import ctypes,struct,datetime
+import ctypes,struct,datetime,time
 import rpi_daq, unpacker
 import skiroc2cms_bit_string as sk2conf
 
@@ -56,6 +56,19 @@ if __name__ == "__main__":
                 rawdata=theDaq.processEvent()
                 pdata=packer.pack(*rawdata)
                 socket.send(pdata)
+
+            elif content[0] == "PROCESS_AND_PUSH_N_EVENTS":
+                pusher=context.socket(zmq.PUSH)
+                pusher.bind("tcp://*:5556")
+                socket.send("start to process and push the events")
+                print("start to process and push the events")
+                for i in xrange(daq_options['nEvent']):
+                    #print("Sending event %d",i)
+                    rawdata=theDaq.processEvent()
+                    pdata=packer.pack(*rawdata)
+                    pusher.send(pdata)
+                pusher.close()
+                print("finish to process and push the events")
 
             elif content[0] == "END_OF_RUN":
                 socket.send("CLOSING_SERVER")
