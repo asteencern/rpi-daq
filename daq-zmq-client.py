@@ -123,11 +123,11 @@ if __name__ == "__main__":
     #         outputFile.write(byteArray)
 
     cmd="PROCESS_AND_PUSH_N_EVENTS"
-    puller=context.socket(zmq.PULL)
-    puller.connect("tcp://"+glb_options['serverIpAdress']+":5556")
     socket.send(cmd)
     mes=socket.recv()
     print(mes)
+    puller=context.socket(zmq.PULL)
+    puller.connect("tcp://"+glb_options['serverIpAdress']+":5556")
     try:
         while True:
             for i in xrange(0,daq_options['nEvent']):
@@ -138,17 +138,15 @@ if __name__ == "__main__":
                 if options.dataNotSaved==False:
                     outputFile.write(byteArray)
             puller.close()
-            
+            socket.send("END_OF_RUN")
+            if socket.recv()=="CLOSING_SERVER":
+                socket.close()
+                context.term()
+            break
+        
     except KeyboardInterrupt:
-        puller.close()
-        socket.send("END_OF_RUN")
-        if socket.recv()=="CLOSING_SERVER":
-            socket.close()
-            context.term()
+        print("keyboard interruption")
+        os.system("ssh -T pi@"+glb_options['serverIpAdress']+" \" killall python\"")
             
-    socket.send("END_OF_RUN")
-    if socket.recv()=="CLOSING_SERVER":
-        socket.close()
-        context.term()
 
 

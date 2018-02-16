@@ -63,7 +63,6 @@ if __name__ == "__main__":
                 socket.send("start to process and push the events")
                 print("start to process and push the events")
                 for i in xrange(daq_options['nEvent']):
-                    #print("Sending event %d",i)
                     rawdata=theDaq.processEvent()
                     pdata=packer.pack(*rawdata)
                     pusher.send(pdata)
@@ -78,5 +77,6 @@ if __name__ == "__main__":
                 
     except KeyboardInterrupt:
         print('\nClosing server')
+        pusher.close()
         socket.close()
         context.term()
