@@ -128,15 +128,24 @@ if __name__ == "__main__":
     socket.send(cmd)
     mes=socket.recv()
     print(mes)
-    for i in xrange(0,daq_options['nEvent']):
-        str_data=puller.recv()
-        rawdata=dataStringUnpacker.unpack(str_data)
-        print("Receive event %d",i)
-        byteArray = bytearray(rawdata)
-        if options.dataNotSaved==False:
-            outputFile.write(byteArray)
-    puller.close()
-    
+    try:
+        while True:
+            for i in xrange(0,daq_options['nEvent']):
+                str_data=puller.recv()
+                rawdata=dataStringUnpacker.unpack(str_data)
+                print("Receive event %d",i)
+                byteArray = bytearray(rawdata)
+                if options.dataNotSaved==False:
+                    outputFile.write(byteArray)
+            puller.close()
+            
+    except KeyboardInterrupt:
+        puller.close()
+        socket.send("END_OF_RUN")
+        if socket.recv()=="CLOSING_SERVER":
+            socket.close()
+            context.term()
+            
     socket.send("END_OF_RUN")
     if socket.recv()=="CLOSING_SERVER":
         socket.close()
