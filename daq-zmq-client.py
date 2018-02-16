@@ -123,11 +123,11 @@ if __name__ == "__main__":
     #         outputFile.write(byteArray)
 
     cmd="PROCESS_AND_PUSH_N_EVENTS"
+    puller=context.socket(zmq.PULL)
+    puller.connect("tcp://"+glb_options['serverIpAdress']+":5556")
     socket.send(cmd)
     mes=socket.recv()
     print(mes)
-    puller=context.socket(zmq.PULL)
-    puller.connect("tcp://"+glb_options['serverIpAdress']+":5556")
     for i in xrange(0,daq_options['nEvent']):
         str_data=puller.recv()
         rawdata=dataStringUnpacker.unpack(str_data)
