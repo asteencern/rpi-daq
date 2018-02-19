@@ -7,6 +7,8 @@ if __name__ == "__main__":
     context = zmq.Context()
     socket = context.socket(zmq.REP)
     socket.bind("tcp://*:5555")
+    pusher=context.socket(zmq.PUSH)
+    pusher.bind("tcp://*:5556")
 
     daq_options=yaml.YAMLObject()
     
@@ -58,19 +60,16 @@ if __name__ == "__main__":
                 socket.send(pdata)
 
             elif content[0] == "PROCESS_AND_PUSH_N_EVENTS":
-                pusher=context.socket(zmq.PUSH)
-                pusher.bind("tcp://*:5556")
                 socket.send("start to process and push the events")
                 print("start to process and push the events")
                 for i in xrange(daq_options['nEvent']):
-                    #print("Sending event %d",i)
                     rawdata=theDaq.processEvent()
                     pdata=packer.pack(*rawdata)
                     pusher.send(pdata)
-                pusher.close()
                 print("finish to process and push the events")
 
             elif content[0] == "END_OF_RUN":
+                pusher.close()
                 socket.send("CLOSING_SERVER")
                 socket.close()
                 context.term()
@@ -78,5 +77,6 @@ if __name__ == "__main__":
                 
     except KeyboardInterrupt:
         print('\nClosing server')
+        pusher.close()
         socket.close()
         context.term()

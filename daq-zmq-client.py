@@ -128,18 +128,25 @@ if __name__ == "__main__":
     print(mes)
     puller=context.socket(zmq.PULL)
     puller.connect("tcp://"+glb_options['serverIpAdress']+":5556")
-    for i in xrange(0,daq_options['nEvent']):
-        str_data=puller.recv()
-        rawdata=dataStringUnpacker.unpack(str_data)
-        print("Receive event %d",i)
-        byteArray = bytearray(rawdata)
-        if options.dataNotSaved==False:
-            outputFile.write(byteArray)
-    puller.close()
-    
-    socket.send("END_OF_RUN")
-    if socket.recv()=="CLOSING_SERVER":
-        socket.close()
-        context.term()
+    try:
+        while True:
+            for i in xrange(0,daq_options['nEvent']):
+                str_data=puller.recv()
+                rawdata=dataStringUnpacker.unpack(str_data)
+                print("Receive event %d",i)
+                byteArray = bytearray(rawdata)
+                if options.dataNotSaved==False:
+                    outputFile.write(byteArray)
+            puller.close()
+            socket.send("END_OF_RUN")
+            if socket.recv()=="CLOSING_SERVER":
+                socket.close()
+                context.term()
+            break
+        
+    except KeyboardInterrupt:
+        print("keyboard interruption")
+        os.system("ssh -T pi@"+glb_options['serverIpAdress']+" \" killall python\"")
+            
 
 
