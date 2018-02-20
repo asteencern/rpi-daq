@@ -10,7 +10,8 @@ daq_options:
  channelIdsDisableTOA: [22]
  injectionDAC: 1000
  pulseDelay: 72
- preampFeedbackCapacitance: 8
+ preampFeedbackCapacitance: 8 
+ totDACThreshold: 200
 glb_options:
  moduleNumber: 63_HV200_test
  outputRawDataPath: data

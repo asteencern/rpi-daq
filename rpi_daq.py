@@ -96,7 +96,7 @@ class rpi_daq:
     ##########################################################
 
     def processEvent(self):
-        print("Start events acquisition")
+        print("Start events acquisition %d",self.eventID)
         dac_ctrl=0
         dac_fs=0xFFF
         if self.daq_options['acquisitionType']=="sweep":

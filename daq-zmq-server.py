@@ -1,5 +1,5 @@
 import zmq,yaml
-import ctypes,struct,datetime
+import ctypes,struct,datetime,time
 import rpi_daq, unpacker
 import skiroc2cms_bit_string as sk2conf
 
@@ -7,6 +7,8 @@ if __name__ == "__main__":
     context = zmq.Context()
     socket = context.socket(zmq.REP)
     socket.bind("tcp://*:5555")
+    pusher=context.socket(zmq.PUSH)
+    pusher.bind("tcp://*:5556")
 
     daq_options=yaml.YAMLObject()
     
@@ -43,6 +45,7 @@ if __name__ == "__main__":
                 the_bit_string.set_channels_to_mask(daq_options['channelIdsToMask'])
                 the_bit_string.set_channels_to_disable_trigger_tot(daq_options['channelIdsDisableTOT'])
                 the_bit_string.set_channels_to_disable_trigger_toa(daq_options['channelIdsDisableTOA'])
+                the_bit_string.set_tot_dac_threshold(daq_options['totDACThreshold'])
                 the_bit_string.Print()
                 the_bits_c_uchar_p=the_bit_string.get_48_unsigned_char_p()
                 outputBitString=theDaq.configure(the_bits_c_uchar_p)
@@ -56,7 +59,17 @@ if __name__ == "__main__":
                 pdata=packer.pack(*rawdata)
                 socket.send(pdata)
 
+            elif content[0] == "PROCESS_AND_PUSH_N_EVENTS":
+                socket.send("start to process and push the events")
+                print("start to process and push the events")
+                for i in xrange(daq_options['nEvent']):
+                    rawdata=theDaq.processEvent()
+                    pdata=packer.pack(*rawdata)
+                    pusher.send(pdata)
+                print("finish to process and push the events")
+
             elif content[0] == "END_OF_RUN":
+                pusher.close()
                 socket.send("CLOSING_SERVER")
                 socket.close()
                 context.term()
@@ -64,5 +77,6 @@ if __name__ == "__main__":
                 
     except KeyboardInterrupt:
         print('\nClosing server')
+        pusher.close()
         socket.close()
         context.term()

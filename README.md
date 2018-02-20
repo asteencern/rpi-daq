@@ -43,3 +43,7 @@ mkdir Data
 ```
 python run_local.py
 ```
+* Example of acquisition with charge injection:
+```
+python run_local.py --externalChargeInjection --channelIds=30 --acquisitionType=const_inj --injectionDAC=3000
+```
