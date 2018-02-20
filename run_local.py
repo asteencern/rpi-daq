@@ -31,6 +31,8 @@ if __name__ == "__main__":
                       help="channel Ids for charge injection", callback=get_comma_separated_args, default=[])
     parser.add_option('-g','--injectionDAC',dest="injectionDAC",type="int",action="store",default=1000,
                       help="DAC setting for injection when acquisitionType is const_inj")
+    parser.add_option('-i','--dataNotSaved',dest="dataNotSaved",action="store_true",default=False,
+                      help="set to throw the data away")
     (options, args) = parser.parse_args()
     print(options)
 
@@ -70,35 +72,33 @@ if __name__ == "__main__":
     the_bits_c_uchar_p=the_bit_string.get_48_unsigned_char_p()
     print( [hex(the_bits_c_uchar_p[i]) for i in range(48)] )
 
+    theDaq=rpi_daq.rpi_daq(daq_options)
+    outputBitString=theDaq.configure(the_bits_c_uchar_p)
 
     the_time=datetime.datetime.now()
-    if glb_options['storeYamlFile']==True:
+    if glb_options['storeYamlFile']==True and options.dataNotSaved==False:
         yamlFileName=glb_options['outputYamlPath']+"/Module"+str(glb_options['moduleNumber'])+"_"
         yamlFileName=yamlFileName+str(the_time.day)+"-"+str(the_time.month)+"-"+str(the_time.year)+"_"+str(the_time.hour)+"-"+str(the_time.minute)
         yamlFileName=yamlFileName+".yaml"
         print("\t save yaml file : ",yamlFileName)
         conf.dumpToYaml(yamlFileName)
-    
-    rawFileName=glb_options['outputRawDataPath']+"/Module"+str(glb_options['moduleNumber'])+"_"
-    rawFileName=rawFileName+str(the_time.day)+"-"+str(the_time.month)+"-"+str(the_time.year)+"_"+str(the_time.hour)+"-"+str(the_time.minute)
-    rawFileName=rawFileName+".raw"
-    print("\t open output file : ",rawFileName)
-    outputFile = open(rawFileName,'wb')
 
-    theDaq=rpi_daq.rpi_daq(daq_options)
-    outputBitString=theDaq.configure(the_bits_c_uchar_p)
-    print("\t write bits string in output file")
-    byteArray = bytearray(outputBitString)
-    outputFile.write(byteArray)
+    outputFile=0
+    if options.dataNotSaved==False:
+        rawFileName=glb_options['outputRawDataPath']+"/Module"+str(glb_options['moduleNumber'])+"_"
+        rawFileName=rawFileName+str(the_time.day)+"-"+str(the_time.month)+"-"+str(the_time.year)+"_"+str(the_time.hour)+"-"+str(the_time.minute)
+        rawFileName=rawFileName+".raw"
+        print("\t open output file : ",rawFileName)
+        outputFile = open(rawFileName,'wb')
+        print("\t write bits string in output file")
+        byteArray = bytearray(outputBitString)
+        outputFile.write(byteArray)
 
-    data_unpacker=unpacker.unpacker(daq_options['compressRawData'])
+    #data_unpacker=unpacker.unpacker(daq_options['compressRawData'])
     for event in range(daq_options['nEvent']):
         rawdata=theDaq.processEvent()
-        data_unpacker.unpack(rawdata)
-        data_unpacker.showData(event)
-    
-        byteArray = bytearray(rawdata)
-        outputFile.write(byteArray)
-        
-        if event%10==0:
-            print("event number ",event)
+        #data_unpacker.unpack(rawdata)
+        #data_unpacker.showData(event)
+        if options.dataNotSaved==False:
+            byteArray = bytearray(rawdata)
+            outputFile.write(byteArray)
