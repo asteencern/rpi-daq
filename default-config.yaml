@@ -1,7 +1,7 @@
 ---
 daq_options:
  compressRawData: yes
- nEvent: 1000
+ nEvent: 10
  externalChargeInjection: yes
  acquisitionType: sweep
  channelIds: [10]
@@ -13,11 +13,11 @@ daq_options:
  preampFeedbackCapacitance: 8 
  totDACThreshold: 200
 glb_options:
- moduleNumber: 63_HV200_test
+ moduleNumber: a_very_descriptive_string
  outputRawDataPath: data
  outputYamlPath: yaml
  storeYamlFile: yes
  startServerManually: no
- serverIpAdress: 194.12.171.221
- serverCodePath: /home/pi/arnaud-dev/rpi-daq
+ serverIpAdress: localhost
+ serverCodePath: /home/pi/rpi-daq
 ...

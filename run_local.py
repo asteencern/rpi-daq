@@ -33,13 +33,15 @@ if __name__ == "__main__":
                       help="DAC setting for injection when acquisitionType is const_inj")
     parser.add_option('-i','--dataNotSaved',dest="dataNotSaved",action="store_true",default=False,
                       help="set to throw the data away")
+    parser.add_option('-s','--showRawData',dest="showRawData",action="store_true",default=False,
+                      help="set to decode and print raw data")
     (options, args) = parser.parse_args()
     print(options)
 
     conf=yaml_config()
-    conf.yaml_opt['daq_options']['acquisitionType']=options.acquisitionType
-    conf.yaml_opt['daq_options']['externalChargeInjection']=options.externalChargeInjection
-    conf.yaml_opt['daq_options']['injectionDAC']=options.injectionDAC
+    conf.yaml_opt['daq_options']['acquisitionType'] = options.acquisitionType
+    conf.yaml_opt['daq_options']['externalChargeInjection'] = options.externalChargeInjection
+    conf.yaml_opt['daq_options']['injectionDAC'] = options.injectionDAC
     for i in options.channelIds:
         conf.yaml_opt['daq_options']['channelIds'].append(int(i))
 
@@ -52,7 +54,7 @@ if __name__ == "__main__":
 
     the_bit_string=sk2conf.bit_string()
     the_bit_string.Print()
-    if daq_options['externalChargeInjection']==True:
+    if daq_options['externalChargeInjection']:
         if len(daq_options['channelIds'])>0:
             the_bit_string.set_channels_for_charge_injection(daq_options['channelIds'])
         else:
@@ -76,7 +78,7 @@ if __name__ == "__main__":
     outputBitString=theDaq.configure(the_bits_c_uchar_p)
 
     the_time=datetime.datetime.now()
-    if glb_options['storeYamlFile']==True and options.dataNotSaved==False:
+    if glb_options['storeYamlFile'] and not options.dataNotSaved:
         yamlFileName=glb_options['outputYamlPath']+"/Module"+str(glb_options['moduleNumber'])+"_"
         yamlFileName=yamlFileName+str(the_time.day)+"-"+str(the_time.month)+"-"+str(the_time.year)+"_"+str(the_time.hour)+"-"+str(the_time.minute)
         yamlFileName=yamlFileName+".yaml"
@@ -84,7 +86,7 @@ if __name__ == "__main__":
         conf.dumpToYaml(yamlFileName)
 
     outputFile=0
-    if options.dataNotSaved==False:
+    if not options.dataNotSaved:
         rawFileName=glb_options['outputRawDataPath']+"/Module"+str(glb_options['moduleNumber'])+"_"
         rawFileName=rawFileName+str(the_time.day)+"-"+str(the_time.month)+"-"+str(the_time.year)+"_"+str(the_time.hour)+"-"+str(the_time.minute)
         rawFileName=rawFileName+".raw"
@@ -94,11 +96,12 @@ if __name__ == "__main__":
         byteArray = bytearray(outputBitString)
         outputFile.write(byteArray)
 
-    #data_unpacker=unpacker.unpacker(daq_options['compressRawData'])
+    data_unpacker=unpacker.unpacker(daq_options['compressRawData'])
     for event in range(daq_options['nEvent']):
         rawdata=theDaq.processEvent()
-        #data_unpacker.unpack(rawdata)
-        #data_unpacker.showData(event)
-        if options.dataNotSaved==False:
+        if options.showRawData:
+            data_unpacker.unpack(rawdata)
+            data_unpacker.showData(event)
+        if not options.dataNotSaved:
             byteArray = bytearray(rawdata)
             outputFile.write(byteArray)
