@@ -41,7 +41,7 @@ python run_local.py --showRawData --dataNotSaved
 
 An example of client and server running in the same machine
 ```
-python zmq-daq-client.py -e
+python daq-zmq-client.py -e
 ```
 
 ## Development
