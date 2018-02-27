@@ -33,7 +33,7 @@ More details on the `SKIROC2_CMS` readout chip configuration can be found [here]
 - Enable `VNC` in pi customization GUI from `Desktop menu -> Preferences -> Raspberry Pi Configuration`.
 - Install some goodies:
     ```bash
-    sudo apt-get --yes install emacs htop liquidprompt ipython elpa-markdown-mode
+    sudo apt-get --yes install emacs25 htop iotop nmap liquidprompt ipython elpa-markdown-mode yaml-mode
     liquidprompt_activate
     ```
 
@@ -41,7 +41,7 @@ More details on the `SKIROC2_CMS` readout chip configuration can be found [here]
 
 ```bash
 cd $HOME
-git clone https://github.com/CMS-HGCAL/rpi-daq.git
+git clone https://github.com/CMS-HGCAL/rpi-daq
 cd rpi-daq
 make packages
 ```
