@@ -1,5 +1,28 @@
 # https://gist.github.com/fm4dd/c663217935dc17f0fc73c9c81b0aa845
-MYCFLAGS= -O3 -mtune=cortex-a53 -mcpu=cortex-a53 -mfloat-abi=hard -mfpu=neon-fp-armv8 -mneon-for-64bits
+
+# 100 ev in 14.700s
+#MYCFLAGS= -O3 -mtune=cortex-a53 -mcpu=cortex-a53 -mfloat-abi=hard -mfpu=neon-fp-armv8 -mneon-for-64bits
+
+# 100 ev in 17.370s
+#MYCFLAGS= -O0
+
+# 100 ev in 14.860s
+#MYCFLAGS= -O2
+
+# 100 ev in 14.670s
+#MYCFLAGS= -O1
+
+# 100 ev in 14.380s
+MYCFLAGS= -Os
+
+# 100 ev in 17.540s
+#MYCFLAGS=
+
+# 100 ev in 14.700s
+#MYCFLAGS = -O2 -mcpu=cortex-a53 -mfpu=neon-fp-armv8 -mfloat-abi=hard -funsafe-math-optimizations 
+
+# Benchmarking command
+# make distclean; make; time (python run_local.py --dataNotSaved > /dev/null)
 
 all: lib/libbcm2835.so lib/libgpiohb.so
 
