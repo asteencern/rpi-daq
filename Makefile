@@ -24,15 +24,17 @@ MYCFLAGS= -Os
 # Benchmarking command
 # make distclean; make; time (python run_local.py --dataNotSaved > /dev/null)
 
-all: lib/libbcm2835.so lib/libgpiohb.so
+all: lib/libgpiohb.so
 
-src/gpiohb.o: src/gpiohb.c
+src/gpiohb.o: src/gpiohb.c lib/libbcm2835.so
 	gcc -c -I ./src/bcm2835/src -L ./lib -fPIC $(MYCFLAGS) $< -o $@
 
-lib/libgpiohb.so: src/gpiohb.o lib/libbcm2835.so
+lib/libgpiohb.so: src/gpiohb.o
+	mkdir -p lib
 	gcc -shared $< -o $@
 
 lib/libbcm2835.so: src/bcm2835/src/bcm2835.o
+	mkdir -p lib
 	gcc -shared $< -o $@
 
 src/bcm2835/src/bcm2835.o: src/bcm2835/src/bcm2835.c
@@ -40,6 +42,7 @@ src/bcm2835/src/bcm2835.o: src/bcm2835/src/bcm2835.c
 
 src/bcm2835/src/bcm2835.c:
 	if ! dpkg -l | grep html-xml-utils -c >>/dev/null; then sudo apt-get --yes install html-xml-utils; fi
+	mkdir -p src/bcm2835
 	wget -qO - `curl -sL http://www.airspayce.com/mikem/bcm2835 | hxnormalize -x -e | hxselect -s '\n' -c "div.textblock>p:nth-child(4)>a:nth-child(1)"` | tar xz --strip-components=1 -C src/bcm2835
 	cd src/bcm2835 && (./configure CFLAGS=" -fPIC $(MYCFLAGS)")
 
@@ -57,7 +60,8 @@ clean:
 	if [ -e src/bcm2835/src ]; then make -C src/bcm2835 clean; fi;
 
 distclean: clean
-	rm -rf src/bcm2835/*
+	rm -rf lib
+	rm -rf src/bcm2835
 	@find ./ $(RCS_FIND_IGNORE) \
         \( -name '*.orig' -o -name '*.rej' -o -name '*~' \
         -o -name '*.bak' -o -name '#*#' -o -name '.*.orig' \
@@ -65,5 +69,5 @@ distclean: clean
         -o -name '*%' -o -name '.*.cmd' -o -name 'core' \) \
         -type f -print | xargs rm -f
 
-testrun:
+testrun: all
 	python run_local.py --externalChargeInjection --channelIds=30 --acquisitionType=const_inj --injectionDAC=3000 --dataNotSaved --showRawData
