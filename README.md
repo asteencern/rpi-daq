@@ -90,7 +90,7 @@ python zmq-daq-client.py -e
     ```
 - `sudo reboot`
 - Change `pi` user password using `passwd`.
-- Enable `VNC` in pi customization GUI from `Desktop menu → Preferences → Raspberry Pi Configuration`.
+- Enable `VNC` in pi customization GUI from `Desktop menu → Preferences → Raspberry Pi Configuration → Interfaces → VNC: Enabled`.
 - Install some goodies:
     ```bash
     sudo apt-get --yes install emacs25 htop iotop nmap liquidprompt ipython elpa-markdown-mode yaml-mode
