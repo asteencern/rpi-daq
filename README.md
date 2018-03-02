@@ -112,7 +112,7 @@ python daq-zmq-client.py -e
     ```
 - Install some goodies:
     ```bash
-    sudo apt-get --yes install emacs25 htop iotop nmap liquidprompt ipython elpa-markdown-mode yaml-mode
+    sudo apt-get --yes install emacs25 htop iotop nmap liquidprompt ipython elpa-markdown-mode yaml-mode git
     liquidprompt_activate
     ```
 - Setup the `C` GPIO API (see also the [Tinker Board page](https://www.asus.com/Single-Board-Computer/Tinker-Board/)). Basically:
