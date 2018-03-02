@@ -112,8 +112,9 @@ python daq-zmq-client.py -e
     ```
 - Install some goodies:
     ```bash
-    sudo apt-get --yes install emacs25 htop iotop nmap liquidprompt ipython elpa-markdown-mode yaml-mode git
+    sudo apt-get --yes install emacs25 htop iotop nmap liquidprompt ipython elpa-markdown-mode yaml-mode git tree
     liquidprompt_activate
+    echo heartbeat | sudo tee /sys/class/leds/led1-led/trigger
     ```
 - Setup the `C` GPIO API (see also the [Tinker Board page](https://www.asus.com/Single-Board-Computer/Tinker-Board/)). Basically:
     ```bash
@@ -128,6 +129,6 @@ python daq-zmq-client.py -e
     ```bash
     # From https://tinkerboarding.co.uk/wiki/index.php?title=Software#Remote_access
     sudo apt-get --yes install x11vnc
-    echo "@x11vnc -forever -ssl -geometry 1600x1200 -truecolor -noxrecord" >> ~/.config/lxsession/LXDE/autostart
+    echo "@x11vnc -forever -noxrecord" >> ~/.config/lxsession/LXDE/autostart
     sudo service lightdm restart
     ```
