@@ -3,6 +3,9 @@ import sys
 import yaml
 from time import sleep
 
+import os
+path = os.path.dirname(os.path.realpath(__file__))
+
 class rpi_daq:
     CMD_IDLE          = 0x80
     CMD_RESETPULSE    = 0x88
@@ -22,9 +25,9 @@ class rpi_daq:
     DAC_HIGH_WORD     = 0x42
     DAC_LOW_WORD      = 0x0A
     TRIGGER_DELAY     = 0x07# 0x00 to 0x07
-    PULSE_DELAY       = 0x50# minimum value = 30 (0x1e), maximum value 127
-    bcmlib=ctypes.CDLL("/usr/local/lib/libbcm2835.so", mode = ctypes.RTLD_GLOBAL)
-    gpio=ctypes.CDLL("/usr/local/lib/gpiolib.so")
+    PULSE_DELAY       = 0x50# minimum value = 30 (0x1e), maximum value 127    
+    bcmlib=ctypes.CDLL(path+"/lib/libbcm2835.so", mode = ctypes.RTLD_GLOBAL)
+    gpio=ctypes.CDLL(path+"/lib/libgpiohb.so")
     eventID=0
     daq_options=yaml.YAMLObject()
     rawdata=[]
