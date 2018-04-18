@@ -25,8 +25,9 @@ if __name__ == "__main__":
     parser = OptionParser()
     parser.add_option("-d", "--externalChargeInjection", dest="externalChargeInjection",action="store_true",
                       help="set to use external injection",default=False)
-    parser.add_option("-e", "--acquisitionType", dest="acquisitionType",choices=["standard","sweep","fixed","const_inj"],
-                      help="method for injection", default="standard")
+    choices_m=["standard","sweep","fixed","const_inj","instrumental_trigger","external_trigger"]
+    parser.add_option("-e", "--acquisitionType", dest="acquisitionType",choices=choices_m,
+                      help="acquisition method, valid choices are:\t%s"%(choices_m), default="standard")
     parser.add_option('-f', '--channelIds', dest="channelIds",action="callback",type=str,
                       help="channel Ids for charge injection", callback=get_comma_separated_args, default=[])
     parser.add_option('-g','--injectionDAC',dest="injectionDAC",type="int",action="store",default=1000,
@@ -73,6 +74,12 @@ if __name__ == "__main__":
     the_bit_string.Print()
     the_bits_c_uchar_p=the_bit_string.get_48_unsigned_char_p()
     print( [hex(the_bits_c_uchar_p[i]) for i in range(48)] )
+
+    c_uchar_p = (ctypes.c_ubyte*192)()
+    for i in xrange(192):
+        index=i%48
+        c_uchar_p[i]=the_bits_c_uchar_p[index]
+    print( [hex(c_uchar_p[i]) for i in xrange(192)] )
 
     theDaq=rpi_daq.rpi_daq(daq_options)
     outputBitString=theDaq.configure(the_bits_c_uchar_p)
