@@ -136,7 +136,7 @@ class rpi_daq:
             
         elif self.daq_options['acquisitionType']=="standard":
             res = self.gpio.send_command(self.CMD_SETSTARTACQ | 1)
-            sleep(0,00001)
+            sleep(0.1)
             res = self.gpio.send_command(self.CMD_SETSTARTACQ)  ## <<<+++   THIS IS THE TRIGGER ##
 
         elif self.daq_options['acquisitionType']=="sweep" and self.daq_options['externalChargeInjection']==True:
