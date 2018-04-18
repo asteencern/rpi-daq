@@ -131,35 +131,41 @@ class rpi_daq:
     ##########################################################
 
     def acquire(self):
-        if self.daq_options['acquisitionType']=="fixed":
-            res = self.gpio.fixed_acquisition()
+        if self.daq_options['acquisitionType']=="instrumental_trigger" or self.daq_options['acquisitionType']=="external_trigger":
+            res = self.gpio.send_command(self.CMD_SETSTARTACQ | 1)
+          
+            if self.daq_options['acquisitionType']=="instrumental_trigger":
+                res = self.gpio.instrumental_trigger()#firmware sets the trigger to the pin -> external device (e.g. pulse generator) -> external trigger
+
+        else:
+            if self.daq_options['acquisitionType']=="fixed":
+                res = self.gpio.fixed_acquisition()
+                
+            elif self.daq_options['acquisitionType']=="standard":
+                res = self.gpio.send_command(self.CMD_SETSTARTACQ | 1)
+                sleep(0.00001)
+                res = self.gpio.send_command(self.CMD_SETSTARTACQ)  ## <<<+++   THIS IS THE TRIGGER ##
+
+            elif self.daq_options['acquisitionType']=="sweep" or self.daq_options['acquisitionType']=="const_inj":
+                res = self.gpio.send_command(self.CMD_SETSTARTACQ | 1)
+                sleep(0.00001)
+                res = self.gpio.calib_gen()
+
+            # still needed when no hardware trigger
+            res = self.gpio.send_command(self.CMD_STARTCONPUL)
+            sleep(0.003)
+            res =self.gpio.send_command(self.CMD_STARTROPUL)
             
-        elif self.daq_options['acquisitionType']=="standard":
-            res = self.gpio.send_command(self.CMD_SETSTARTACQ | 1)
-            sleep(0.1)
-            res = self.gpio.send_command(self.CMD_SETSTARTACQ)  ## <<<+++   THIS IS THE TRIGGER ##
-
-        elif self.daq_options['acquisitionType']=="sweep" and self.daq_options['externalChargeInjection']==True:
-            res = self.gpio.send_command(self.CMD_SETSTARTACQ | 1)
-            res = self.gpio.calib_gen()
-
-        elif self.daq_options['acquisitionType']=="instrunental_trigger" or self.daq_options['acquisitionType']=="external_trigger":
-            res = self.gpio.send_command(self.CMD_SETSTARTACQ | 1)
-
-        # the folowing should not be needed anymore with new firmware
-        # res = self.gpio.send_command(self.CMD_STARTCONPUL)
-        # sleep(0.003)
-        # res =self.gpio.send_command(self.CMD_STARTROPUL)
-        # sleep(0.0001)
 
         while True:
             fifoSize = (self.gpio.read_usedwh() << 8) | self.gpio.read_usedwl()
-            if fifoSize>30000:
-                print "Done with fifoSize = ",fifoSize
+            if fifoSize>2000: #smaller value can be used when running without debug
+                #print "Done with fifoSize = ",fifoSize #comment this out when running whithout debug
                 break
             else:
-                print "fifoSize = ",fifoSize
+                #print "fifoSize = ",fifoSize #comment this out when running whithout debug
                 sleep(0.0001)
+
 
     def processEvent(self):
         print("Start events acquisition %d",self.eventID)
