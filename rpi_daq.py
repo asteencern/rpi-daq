@@ -48,14 +48,14 @@ class rpi_daq:
             res = self.gpio.set_bus_init()
             ##empty the fifo:
             for i in xrange(0,33000):
-                res = self.gpio.read_local_fifo();	
+                res = self.gpio.read_local_fifo()
 
             if self.daq_options['externalChargeInjection']==False:
-                res = self.gpio.set_trigger_delay(self.TRIGGER_DELAY);
+                res = self.gpio.set_trigger_delay(self.TRIGGER_DELAY)
             else:
-                res = self.gpio.set_trigger_delay(self.daq_options['pulseDelay']);
-            res = self.gpio.send_command(self.CMD_RSTBPULSE);
-            res = self.gpio.send_command(self.CMD_SETSELECT | 1);
+                res = self.gpio.set_trigger_delay(self.daq_options['pulseDelay'])
+            res = self.gpio.send_command(self.CMD_RSTBPULSE)
+            res = self.gpio.send_command(self.CMD_SETSELECT | 1)
                 
         if self.daq_options['compressRawData']==True:
             self.rawdata=[0 for i in xrange(15394)]#15392 bytes of data + 2 bytes for injetion value
@@ -76,11 +76,11 @@ class rpi_daq:
         if len(bit_string)==384:
             outputBitString=(ctypes.c_ubyte*384)()
             print "try to prog with 384 bytes:\t",
-            self.gpio.progandverify384(bit_string,outputBitString);
+            self.gpio.progandverify384(bit_string,outputBitString)
             print "completed"
         elif len(bit_string)==48:
             print "try to prog with 48 bytes:\t",
-            self.gpio.progandverify48(bit_string,outputBitString);
+            self.gpio.progandverify48(bit_string,outputBitString)
             print "completed"
         else:
             print("size of bit string not correct : should be 48 or 384 instead of ",len(bit_string),"\t-> exit")
@@ -97,6 +97,75 @@ class rpi_daq:
         # print("Configure completed")
 
     ##########################################################
+
+    def configure_4chips(self,bit_string):
+        print("Configure rpi-daq")
+
+        self.eventID=0
+
+        print "\t send different bits string to the 4 chips:\t",
+        outputBitString=(ctypes.c_ubyte*48*4)()
+        if len(bit_string)==384*4:
+            outputBitString=(ctypes.c_ubyte*384*4)()
+            print "try to prog with 384*4 bytes:\t",
+            self.gpio.progandverify384_4chips(bit_string,outputBitString)
+            print "completed"
+        elif len(bit_string)==48*4:
+            print "try to prog with 48*4 bytes:\t",
+            self.gpio. progandverify48_4chips(bit_string,outputBitString)
+            print "completed"
+        else:
+            print("size of bit string not correct : should be 48*4 or 384*4 instead of ",len(bit_string),"\t-> exit")
+            sys.exit(1)
+
+        print("outputBitString = ",outputBitString)
+
+        res=self.gpio.send_command(self.CMD_SETSELECT)
+        sleep(0.01)
+
+        print("Configure completed")
+        return outputBitString
+
+        # print("Configure completed")
+
+    ##########################################################
+
+    def acquire(self):
+        if self.daq_options['acquisitionType']=="instrumental_trigger" or self.daq_options['acquisitionType']=="external_trigger":
+            res = self.gpio.send_command(self.CMD_SETSTARTACQ | 1)
+          
+            if self.daq_options['acquisitionType']=="instrumental_trigger":
+                res = self.gpio.instrumental_trigger()#firmware sets the trigger to the pin -> external device (e.g. pulse generator) -> external trigger
+
+        else:
+            if self.daq_options['acquisitionType']=="fixed":
+                res = self.gpio.fixed_acquisition()
+                
+            elif self.daq_options['acquisitionType']=="standard":
+                res = self.gpio.send_command(self.CMD_SETSTARTACQ | 1)
+                sleep(0.00001)
+                res = self.gpio.send_command(self.CMD_SETSTARTACQ)  ## <<<+++   THIS IS THE TRIGGER ##
+
+            elif self.daq_options['acquisitionType']=="sweep" or self.daq_options['acquisitionType']=="const_inj":
+                res = self.gpio.send_command(self.CMD_SETSTARTACQ | 1)
+                sleep(0.00001)
+                res = self.gpio.calib_gen()
+
+            # still needed when no hardware trigger
+            res = self.gpio.send_command(self.CMD_STARTCONPUL)
+            sleep(0.003)
+            res =self.gpio.send_command(self.CMD_STARTROPUL)
+            
+
+        while True:
+            fifoSize = (self.gpio.read_usedwh() << 8) | self.gpio.read_usedwl()
+            if fifoSize>2000: #smaller value can be used when running without debug
+                #print "Done with fifoSize = ",fifoSize #comment this out when running whithout debug
+                break
+            else:
+                #print "fifoSize = ",fifoSize #comment this out when running whithout debug
+                sleep(0.0001)
+
 
     def processEvent(self):
         print("Start events acquisition %d",self.eventID)
@@ -122,20 +191,23 @@ class rpi_daq:
             res = self.gpio.set_dac_low_word(self.DAC_LOW_WORD)	
 
         res = self.gpio.send_command(self.CMD_RESETPULSE)
-        sleep(0.0001);
-        if self.daq_options['acquisitionType']=="fixed":
-            res = self.gpio.fixed_acquisition()
-        else:
-            res = self.gpio.send_command(self.CMD_SETSTARTACQ | 1)
-            if self.daq_options['externalChargeInjection']==False:
-                res = self.gpio.send_command(self.CMD_SETSTARTACQ)  ## <<<+++   THIS IS THE TRIGGER ##
-            else:
-                res = self.gpio.calib_gen()
-
-        res = self.gpio.send_command(self.CMD_STARTCONPUL)
-        sleep(0.003)
-        res =self.gpio.send_command(self.CMD_STARTROPUL)
         sleep(0.0001)
+
+        self.acquire()
+        
+        # if self.daq_options['acquisitionType']=="fixed":
+        #     res = self.gpio.fixed_acquisition()
+        # else:
+        #     res = self.gpio.send_command(self.CMD_SETSTARTACQ | 1)
+        #     if self.daq_options['externalChargeInjection']==False:
+        #         res = self.gpio.send_command(self.CMD_SETSTARTACQ)  ## <<<+++   THIS IS THE TRIGGER ##
+        #     else:
+        #         res = self.gpio.calib_gen()
+
+        # res = self.gpio.send_command(self.CMD_STARTCONPUL)
+        # sleep(0.003)
+        # res =self.gpio.send_command(self.CMD_STARTROPUL)
+        # sleep(0.0001)
     
         t = self.gpio.read_local_fifo()
         if self.daq_options['compressRawData']==True:

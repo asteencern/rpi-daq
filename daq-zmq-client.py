@@ -26,8 +26,9 @@ if __name__ == "__main__":
     parser = OptionParser()
     parser.add_option("-a", "--externalChargeInjection", dest="externalChargeInjection",action="store_true",
                       help="set to use external injection",default=False)
-    parser.add_option("-b", "--acquisitionType", dest="acquisitionType",choices=["standard","sweep","fixed","const_inj"],
-                      help="method for injection", default="standard")
+    choices_m=["standard","sweep","fixed","const_inj","instrumental_trigger","external_trigger"]
+    parser.add_option("-b", "--acquisitionType", dest="acquisitionType",choices=choices_m,
+                      help="acquisition method, valid choices are:\t%s"%(choices_m), default="standard")
     parser.add_option('-c', '--channelIds', dest="channelIds",action="callback",type=str,
                       help="channel Ids for charge injection", callback=get_comma_separated_args, default=[])
     parser.add_option('-d','--injectionDAC',dest="injectionDAC",type="int",action="store",default=1000,
