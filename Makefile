@@ -13,7 +13,7 @@
 #MYCFLAGS= -O1
 
 # 100 ev in 14.380s
-MYCFLAGS= -Os
+#MYCFLAGS= -Os
 
 # 100 ev in 17.540s
 #MYCFLAGS=
@@ -24,14 +24,16 @@ MYCFLAGS= -Os
 # Benchmarking command
 # make distclean; make; time (python run_local.py --dataNotSaved > /dev/null)
 
+MYCFLAGS = -O3
+
 all: lib/libgpiohb.so
 
-src/gpiohb.o: src/gpiohb.c lib/libbcm2835.so
-	gcc -c -I ./src/bcm2835/src -L ./lib -fPIC $(MYCFLAGS) $< -o $@
+src/gpiohb.o: src/gpiohb.c lib/libbcm2835.so src/data_addr_luts.h
+	g++ -c -I ./src/bcm2835/src -L ./lib -fPIC $(MYCFLAGS) $< -o $@
 
 lib/libgpiohb.so: src/gpiohb.o
 	mkdir -p lib
-	gcc -shared $< -o $@
+	g++ -shared $< -o $@
 
 lib/libbcm2835.so: src/bcm2835/src/bcm2835.o
 	mkdir -p lib
@@ -71,3 +73,6 @@ distclean: clean
 
 testrun: all
 	python run_local.py --externalChargeInjection --channelIds=30 --acquisitionType=const_inj --injectionDAC=3000 --dataNotSaved --showRawData
+
+testfifo: all
+	python test_fifo.py

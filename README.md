@@ -96,6 +96,12 @@ python daq-zmq-client.py -e
     sudo apt-get --yes install emacs25 htop iotop nmap liquidprompt ipython elpa-markdown-mode yaml-mode
     liquidprompt_activate
     ```
+- Free up some space:
+	```bash
+	sudo apt-get --yes purge wolfram-engine libreoffice*
+	sudo apt-get clean
+	sudo apt-get --yes autoremove
+	```
 
 ## 🚧 ASUS Tinker Board from scratch 
 
