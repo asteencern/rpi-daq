@@ -433,19 +433,25 @@ extern "C" int read_command(void)
   }
 }
 
+inline unsigned char demangle_data(uint32_t val){
+  return
+    (val>>D7pin & 0x1) << 7 |
+    (val>>D6pin & 0x1) << 6 |
+    (val>>D5pin & 0x1) << 5 |
+    (val>>D4pin & 0x1) << 4 |
+    (val>>D3pin & 0x1) << 3 |
+    (val>>D2pin & 0x1) << 2 |
+    (val>>D1pin & 0x1) << 1 |
+    (val>>D0pin & 0x1);
+}
+
+
 // Read used word counter on Max10 FIFO, low part
 extern "C" int read_usedwl(){
-  bool NoAck;
-  unsigned char l;
-  unsigned char r;
-  int result;
-  unsigned char lev;
-  NoAck = false;
+  bool NoAck = false;
 
-  bcm2835_gpio_write(AD0pin, LOW);
-  bcm2835_gpio_write(AD1pin, HIGH);
-  bcm2835_gpio_write(AD2pin, LOW);
-  bcm2835_gpio_write(AD3pin, LOW);
+  bcm2835_gpio_set_multi(ADDR_SET_LUT(0x2));
+  bcm2835_gpio_clr_multi(ADDR_CLR_LUT(0x2));
 
   if(BusMode == MODE_WRITE)
     set_bus_read_mode();
@@ -454,57 +460,33 @@ extern "C" int read_usedwl(){
   bcm2835_gpio_write(STpin, LOW);
   bcm2835_gpio_write(STpin, LOW);
 
-  lev = bcm2835_gpio_lev(	ACKpin	);	                // check that ACK is LOW
-  if(lev == HIGH) {
+  if(bcm2835_gpio_lev(ACKpin) == HIGH) {
     NoAck = true;
   }
-  r = 0;
-  l = bcm2835_gpio_lev(D0pin);
-  r = r | l;
-  l = bcm2835_gpio_lev(D1pin);
-  r = r | (l << 1);
-  l = bcm2835_gpio_lev(D2pin);
-  r = r | (l << 2);
-  l = bcm2835_gpio_lev(D3pin);
-  r = r | (l << 3);
-  l = bcm2835_gpio_lev(D4pin);
-  r = r | (l << 4);
-  l = bcm2835_gpio_lev(D5pin);
-  r = r | (l << 5);
-  l = bcm2835_gpio_lev(D6pin);
-  r = r | (l << 6);
-  l = bcm2835_gpio_lev(D7pin);
-  r = r | (l << 7);
 
-  result = (int) r;
+  unsigned char v = demangle_data( bcm2835_peri_read(BCM2835_GPIO_LEV_ADDR) );
+
   bcm2835_gpio_write(STpin, HIGH);
   bcm2835_gpio_write(STpin, HIGH);
 
-  lev = bcm2835_gpio_lev(	ACKpin	);	                // check that ACK is HIGH
-  if(lev == LOW) {
+  if(bcm2835_gpio_lev(ACKpin) == LOW) {
     NoAck = true;
   }
+  
   if(NoAck){
     return(-1);
   }
   else {
-    return(result);
+    return(v);
   }
 }
 
 // Read used word counter on Max10 FIFO, high part
 extern "C" int read_usedwh(){
-  bool NoAck;
-  unsigned char l;
-  unsigned char r;
-  int result;
-  unsigned char lev;
-  NoAck = false;
+  bool NoAck = false;
 
-  bcm2835_gpio_write(AD0pin, HIGH);
-  bcm2835_gpio_write(AD1pin, HIGH);
-  bcm2835_gpio_write(AD2pin, LOW);
-  bcm2835_gpio_write(AD3pin, LOW);
+  bcm2835_gpio_set_multi(ADDR_SET_LUT(0x3));
+  bcm2835_gpio_clr_multi(ADDR_CLR_LUT(0x3));
 
   if(BusMode == MODE_WRITE)
     set_bus_read_mode();
@@ -513,43 +495,29 @@ extern "C" int read_usedwh(){
   bcm2835_gpio_write(STpin, LOW);
   bcm2835_gpio_write(STpin, LOW);
 
-  lev = bcm2835_gpio_lev(	ACKpin	);	                // check that ACK is LOW
-  if(lev == HIGH) {
+  if(bcm2835_gpio_lev(ACKpin) == HIGH) {
     NoAck = true;
   }
 
-  r = 0;
-  l = bcm2835_gpio_lev(D0pin);
-  r = r | l;
-  l = bcm2835_gpio_lev(D1pin);
-  r = r | (l << 1);
-  l = bcm2835_gpio_lev(D2pin);
-  r = r | (l << 2);
-  l = bcm2835_gpio_lev(D3pin);
-  r = r | (l << 3);
-  l = bcm2835_gpio_lev(D4pin);
-  r = r | (l << 4);
-  l = bcm2835_gpio_lev(D5pin);
-  r = r | (l << 5);
-  l = bcm2835_gpio_lev(D6pin);
-  r = r | (l << 6);
-  l = bcm2835_gpio_lev(D7pin);
-  r = r | (l << 7);
-
-  result = (int) r;
+  unsigned char v = demangle_data( bcm2835_peri_read(BCM2835_GPIO_LEV_ADDR) );
+  
   bcm2835_gpio_write(STpin, HIGH);
   bcm2835_gpio_write(STpin, HIGH);
 
-  lev = bcm2835_gpio_lev(	ACKpin	);	                // check that ACK is HIGH
-  if(lev == LOW) {
+  if(bcm2835_gpio_lev(ACKpin) == LOW) {
     NoAck = true;
   }
+  
   if(NoAck){
     return(-1);
   }
   else {
-    return(result);
+    return(v);
   }
+}
+
+extern "C" short read_usedw(){
+  return (read_usedwh() << 8) | read_usedwl();
 }
 
 
@@ -695,7 +663,6 @@ extern "C" int write_local_fifo(unsigned char c){
   }
 }
 
-
 // Read from the local FIFO
 extern "C" int read_local_fifo(){
   bool NoAck = false;
@@ -712,24 +679,12 @@ extern "C" int read_local_fifo(){
     NoAck = true;
   }
   
-  uint32_t val = bcm2835_peri_read( BCM2835_GPIO_LEV_ADDR );
-  unsigned char v =
-    (val>>D7pin & 0x1) << 7 |
-    (val>>D6pin & 0x1) << 6 |
-    (val>>D5pin & 0x1) << 5 |
-    (val>>D4pin & 0x1) << 4 |
-    (val>>D3pin & 0x1) << 3 |
-    (val>>D2pin & 0x1) << 2 |
-    (val>>D1pin & 0x1) << 1 |
-    (val>>D0pin & 0x1) << 0;
-
-
+  unsigned char v = demangle_data( bcm2835_peri_read(BCM2835_GPIO_LEV_ADDR) );
   
   bcm2835_gpio_write(STpin, HIGH);
   //bcm2835_gpio_write(STpin, HIGH);
 
-  /* lev = bcm2835_gpio_lev(	ACKpin	);	                // check that ACK is HIGH */
-  /* if(lev == LOW) { */
+  /* if(bcm2835_gpio_lev(ACKpin) == LOW) { */
   /*   NoAck = true; */
   /* } */
 
@@ -782,15 +737,15 @@ extern "C" void ConvertProgrStrBittoByte(unsigned char * bits, unsigned char * b
 // Converts a string of bits in a string of bytes (4 chips)
 extern "C" void ConvertProgrStrBittoByte_4chips(unsigned char * bits, unsigned char * bytes)
 {
-	int i, j;
-	unsigned char b;
-	for (i = 0; i < 192; i = i + 1){
-		b = 0;
-		for(j = 0; j < 8; j = j + 1){
-			b = b | ( *(bits + sizeof(unsigned char) * i*8 + sizeof(unsigned char) * j) << (7 - j));			
-		}
-		*(bytes + sizeof(unsigned char) * i) = b;	
-	}
+  int i, j;
+  unsigned char b;
+  for (i = 0; i < 192; i = i + 1){
+    b = 0;
+    for(j = 0; j < 8; j = j + 1){
+      b = b | ( *(bits + sizeof(unsigned char) * i*8 + sizeof(unsigned char) * j) << (7 - j));			
+    }
+    *(bytes + sizeof(unsigned char) * i) = b;	
+  }
 }
 
 // program the 48 bytes configuration string into the SK2 3 bits at a time

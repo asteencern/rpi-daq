@@ -158,7 +158,7 @@ class rpi_daq:
             
 
         while True:
-            fifoSize = (self.gpio.read_usedwh() << 8) | self.gpio.read_usedwl()
+            fifoSize = self.gpio.read_usedw()
             if fifoSize>2000: #smaller value can be used when running without debug
                 #print "Done with fifoSize = ",fifoSize #comment this out when running whithout debug
                 break
