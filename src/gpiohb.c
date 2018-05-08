@@ -714,15 +714,17 @@ extern "C" int read_local_fifo(){
   
   uint32_t val = bcm2835_peri_read( BCM2835_GPIO_LEV_ADDR );
   unsigned char v =
-    (val>>19 & 0x1) << 7 |
-    (val>>13 & 0x1) << 6 |
-    (val>>21 & 0x1) << 5 |
-    (val>>20 & 0x1) << 4 |
-    (val>>24 & 0x1) << 3 |
-    (val>>25 & 0x1) << 2 |
-    (val>>16 & 0x1) << 1 |
-    (val>>26 & 0x1) << 0;
+    (val>>D7pin & 0x1) << 7 |
+    (val>>D6pin & 0x1) << 6 |
+    (val>>D5pin & 0x1) << 5 |
+    (val>>D4pin & 0x1) << 4 |
+    (val>>D3pin & 0x1) << 3 |
+    (val>>D2pin & 0x1) << 2 |
+    (val>>D1pin & 0x1) << 1 |
+    (val>>D0pin & 0x1) << 0;
 
+
+  
   bcm2835_gpio_write(STpin, HIGH);
   //bcm2835_gpio_write(STpin, HIGH);
 
