@@ -142,19 +142,16 @@ extern "C" int send_command(unsigned char c)
   bool NoAck;
   unsigned char lev;
   NoAck = false;
+
   bcm2835_gpio_set_multi(ADDR_SET_LUT(0));
   bcm2835_gpio_clr_multi(ADDR_CLR_LUT(0));
+
   if(BusMode == MODE_READ)
     set_bus_write_mode();
 
-  bcm2835_gpio_write(D0pin, (c       &1));
-  bcm2835_gpio_write(D1pin, ((c >> 1)&1));
-  bcm2835_gpio_write(D2pin, ((c >> 2)&1));
-  bcm2835_gpio_write(D3pin, ((c >> 3)&1));
-  bcm2835_gpio_write(D4pin, ((c >> 4)&1));
-  bcm2835_gpio_write(D5pin, ((c >> 5)&1));
-  bcm2835_gpio_write(D6pin, ((c >> 6)&1));
-  bcm2835_gpio_write(D7pin, ((c >> 7)&1));
+  bcm2835_gpio_set_multi(DATA_SET_LUT(c));
+  bcm2835_gpio_clr_multi(DATA_CLR_LUT(c));
+
   bcm2835_gpio_write(RWpin, LOW);
   bcm2835_gpio_write(STpin, LOW);
   bcm2835_gpio_write(STpin, LOW);
@@ -189,10 +186,12 @@ extern "C" int fixed_acquisition(void)
   c = CMD_SETSTARTACQ | 1;
   unsigned char lev;
   NoAck = false;
+
   bcm2835_gpio_write(AD0pin, HIGH);
   bcm2835_gpio_write(AD1pin, LOW);
   bcm2835_gpio_write(AD2pin, LOW);
   bcm2835_gpio_write(AD3pin, HIGH);
+
   if(BusMode == MODE_READ)
     set_bus_write_mode();
 
@@ -204,6 +203,7 @@ extern "C" int fixed_acquisition(void)
   bcm2835_gpio_write(D5pin, ((c >> 5)&1));
   bcm2835_gpio_write(D6pin, ((c >> 6)&1));
   bcm2835_gpio_write(D7pin, ((c >> 7)&1));
+
   bcm2835_gpio_write(RWpin, LOW);
   bcm2835_gpio_write(STpin, LOW);
   bcm2835_gpio_write(STpin, LOW);
@@ -236,10 +236,12 @@ extern "C" int set_dac_high_word(unsigned char c)
   bool NoAck;
   unsigned char lev;
   NoAck = false;
+
   bcm2835_gpio_write(AD0pin, LOW);
   bcm2835_gpio_write(AD1pin, HIGH);
   bcm2835_gpio_write(AD2pin, HIGH);
   bcm2835_gpio_write(AD3pin, LOW);
+
   if(BusMode == MODE_READ)
     set_bus_write_mode();
 
@@ -251,6 +253,7 @@ extern "C" int set_dac_high_word(unsigned char c)
   bcm2835_gpio_write(D5pin, ((c >> 5)&1));
   bcm2835_gpio_write(D6pin, ((c >> 6)&1));
   bcm2835_gpio_write(D7pin, ((c >> 7)&1));
+
   bcm2835_gpio_write(RWpin, LOW);
   bcm2835_gpio_write(STpin, LOW);
   bcm2835_gpio_write(STpin, LOW);
@@ -279,10 +282,12 @@ extern "C" int set_dac_low_word(unsigned char c)
   bool NoAck;
   unsigned char lev;
   NoAck = false;
+
   bcm2835_gpio_write(AD0pin, HIGH);
   bcm2835_gpio_write(AD1pin, HIGH);
   bcm2835_gpio_write(AD2pin, HIGH);
   bcm2835_gpio_write(AD3pin, LOW);
+
   if(BusMode == MODE_READ)
     set_bus_write_mode();
 
@@ -294,6 +299,7 @@ extern "C" int set_dac_low_word(unsigned char c)
   bcm2835_gpio_write(D5pin, ((c >> 5)&1));
   bcm2835_gpio_write(D6pin, ((c >> 6)&1));
   bcm2835_gpio_write(D7pin, ((c >> 7)&1));
+
   bcm2835_gpio_write(RWpin, LOW);
   bcm2835_gpio_write(STpin, LOW);
   bcm2835_gpio_write(STpin, LOW);
@@ -322,10 +328,12 @@ extern "C" int set_trigger_delay(unsigned char c)
   bool NoAck;
   unsigned char lev;
   NoAck = false;
+
   bcm2835_gpio_write(AD0pin, HIGH);
   bcm2835_gpio_write(AD1pin, LOW);
   bcm2835_gpio_write(AD2pin, HIGH);
   bcm2835_gpio_write(AD3pin, LOW);
+
   if(BusMode == MODE_READ)
     set_bus_write_mode();
 
@@ -337,6 +345,7 @@ extern "C" int set_trigger_delay(unsigned char c)
   bcm2835_gpio_write(D5pin, ((c >> 5)&1));
   bcm2835_gpio_write(D6pin, ((c >> 6)&1));
   bcm2835_gpio_write(D7pin, ((c >> 7)&1));
+
   bcm2835_gpio_write(RWpin, LOW);
   bcm2835_gpio_write(STpin, LOW);
   bcm2835_gpio_write(STpin, LOW);
@@ -368,10 +377,12 @@ extern "C" int read_command(void)
   int result;
   unsigned char lev;
   NoAck = false;
+
   bcm2835_gpio_write(AD0pin, LOW);
   bcm2835_gpio_write(AD1pin, LOW);
   bcm2835_gpio_write(AD2pin, LOW);
   bcm2835_gpio_write(AD3pin, LOW);
+
   if(BusMode == MODE_WRITE)
     set_bus_read_mode();
 
@@ -379,11 +390,13 @@ extern "C" int read_command(void)
   bcm2835_gpio_write(STpin, LOW);
   bcm2835_gpio_write(STpin, LOW);
   bcm2835_gpio_write(STpin, LOW);
+
   lev = bcm2835_gpio_lev(	ACKpin	);	                // check that ACK is LOW
   if(lev == HIGH) {
     NoAck = true;
     printf("\n Read Cmd, No ACK = 0");
   }
+
   r = 0;
   l = bcm2835_gpio_lev(D0pin);
   r = r | l;
@@ -428,16 +441,19 @@ extern "C" int read_usedwl(){
   int result;
   unsigned char lev;
   NoAck = false;
+
   bcm2835_gpio_write(AD0pin, LOW);
   bcm2835_gpio_write(AD1pin, HIGH);
   bcm2835_gpio_write(AD2pin, LOW);
   bcm2835_gpio_write(AD3pin, LOW);
+
   if(BusMode == MODE_WRITE)
     set_bus_read_mode();
 
   bcm2835_gpio_write(RWpin, HIGH);
   bcm2835_gpio_write(STpin, LOW);
   bcm2835_gpio_write(STpin, LOW);
+
   lev = bcm2835_gpio_lev(	ACKpin	);	                // check that ACK is LOW
   if(lev == HIGH) {
     NoAck = true;
@@ -484,20 +500,24 @@ extern "C" int read_usedwh(){
   int result;
   unsigned char lev;
   NoAck = false;
+
   bcm2835_gpio_write(AD0pin, HIGH);
   bcm2835_gpio_write(AD1pin, HIGH);
   bcm2835_gpio_write(AD2pin, LOW);
   bcm2835_gpio_write(AD3pin, LOW);
+
   if(BusMode == MODE_WRITE)
     set_bus_read_mode();
 
   bcm2835_gpio_write(RWpin, HIGH);
   bcm2835_gpio_write(STpin, LOW);
   bcm2835_gpio_write(STpin, LOW);
+
   lev = bcm2835_gpio_lev(	ACKpin	);	                // check that ACK is LOW
   if(lev == HIGH) {
     NoAck = true;
   }
+
   r = 0;
   l = bcm2835_gpio_lev(D0pin);
   r = r | l;
@@ -540,14 +560,16 @@ extern "C" int write_local_fifo_old(unsigned char c){
   unsigned char r;
   NoAck = false;
   unsigned char lev;
+
   bcm2835_gpio_write(AD0pin, HIGH);
   bcm2835_gpio_write(AD1pin, LOW);
   bcm2835_gpio_write(AD2pin, LOW);
   bcm2835_gpio_write(AD3pin, LOW);
+
   if(BusMode == MODE_READ)
     set_bus_write_mode();
 
-bcm2835_gpio_write(D0pin, ( c    &1));
+  bcm2835_gpio_write(D0pin, ( c    &1));
   bcm2835_gpio_write(D1pin, ((c >> 1)&1));
   bcm2835_gpio_write(D2pin, ((c >> 2)&1));
   bcm2835_gpio_write(D3pin, ((c >> 3)&1));
@@ -559,6 +581,7 @@ bcm2835_gpio_write(D0pin, ( c    &1));
   bcm2835_gpio_write(STpin, LOW);
   bcm2835_gpio_write(STpin, LOW);
   bcm2835_gpio_write(STpin, LOW);
+
   lev = bcm2835_gpio_lev(	ACKpin	);	                // check that ACK is LOW
   if(lev == HIGH) {
     NoAck = true;
@@ -588,20 +611,24 @@ extern "C" int read_local_fifo_old(){
   int result;
   unsigned char lev;
   NoAck = false;
+
   bcm2835_gpio_write(AD0pin, HIGH);
   bcm2835_gpio_write(AD1pin, LOW);
   bcm2835_gpio_write(AD2pin, LOW);
   bcm2835_gpio_write(AD3pin, LOW);
+
   if(BusMode == MODE_WRITE)
     set_bus_read_mode();
 
   bcm2835_gpio_write(STpin, LOW);
   bcm2835_gpio_write(STpin, LOW);
   bcm2835_gpio_write(STpin, LOW);
+
   lev = bcm2835_gpio_lev(	ACKpin	);	                // check that ACK is LOW
   if(lev == HIGH) {
     NoAck = true;
   }
+
   r = 0;
   l = bcm2835_gpio_lev(D0pin);
   r = r | l;
@@ -751,7 +778,7 @@ extern "C" void ConvertProgrStrBittoByte(unsigned char * bits, unsigned char * b
 }
 
 // Converts a string of bits in a string of bytes (4 chips)
-void ConvertProgrStrBittoByte_4chips(unsigned char * bits, unsigned char * bytes)
+extern "C" void ConvertProgrStrBittoByte_4chips(unsigned char * bits, unsigned char * bytes)
 {
 	int i, j;
 	unsigned char b;
@@ -904,13 +931,14 @@ extern "C" int calib_gen(){
   
 }
 
-int instrumental_trigger(){
+extern "C" int instrumental_trigger(){
   bool NoAck;
   unsigned char lev;
   bcm2835_gpio_write(AD0pin, LOW);
   bcm2835_gpio_write(AD1pin, HIGH);
   bcm2835_gpio_write(AD2pin, LOW);
   bcm2835_gpio_write(AD3pin, HIGH);
+
   bcm2835_gpio_write(RWpin, LOW);
   bcm2835_gpio_write(STpin, LOW);
   bcm2835_gpio_write(STpin, LOW);

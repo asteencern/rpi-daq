@@ -257,8 +257,9 @@ static const uint32_t DATA_LUT[]={
   0x03392000,
   0x07392000
 };
+#define DATA_MAX (sizeof(DATA_LUT)/sizeof(uint32_t) - 1)
 #define DATA_SET_LUT(N) DATA_LUT[N]
-#define DATA_CLR_LUT(N) DATA_LUT[255-N]
+#define DATA_CLR_LUT(N) DATA_LUT[DATA_MAX-N]
 
 static const uint32_t ADDR_LUT[]={
   0x00000000,
@@ -278,8 +279,9 @@ static const uint32_t ADDR_LUT[]={
   0x08400020,
   0x08400030
 };
+#define ADDR_MAX (sizeof(ADDR_LUT)/sizeof(uint32_t) - 1)
 #define ADDR_SET_LUT(N) ADDR_LUT[N]
-#define ADDR_CLR_LUT(N) ADDR_LUT[3-N]
+#define ADDR_CLR_LUT(N) ADDR_LUT[ADDR_MAX-N]
 
 /*
 #include <map>
