@@ -106,6 +106,7 @@ if __name__ == '__main__':
         ('Walking ones',          [ 1<<(i%8) for i in xrange(1<<15)]),
         ('Walking zeroes',        [ ~(1<<(i%8)) & 0xff for i in xrange(1<<15)]),
         ('Sequential values',     range(1<<8)*(1<<7) ),
+        ('Flip DATA3 alone',      [0x00,0x08]*(1<<14) ),
         ('Random but DATA3=0',    [ random.randint(0,(1<<8)-1) & 0xf7 for _ in xrange(1<<15) ]),
         ('Random but DATA3=1',    [ random.randint(0,(1<<8)-1) | 0x08 for _ in xrange(1<<15) ]),
         ('Random values',         [ random.randint(0,(1<<8)-1) for _ in xrange(1<<15) ]),
