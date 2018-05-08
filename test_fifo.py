@@ -23,54 +23,62 @@ def timeit(func):
 
 
 @timeit
-def write_old(trials):
-    for trial in trials:
-        gpio.write_local_fifo_old(trial)
+def write_old(data):
+    for value in data:
+        gpio.write_local_fifo_old(value)
 
 @timeit
-def read_old(nwords, results):
+def read_old(nwords, readback):
     for i in xrange(nwords):
-        results[i] = gpio.read_local_fifo_old()
+        readback[i] = gpio.read_local_fifo_old()
 
 @timeit
-def write_new(trials):
-    for trial in trials:
-        gpio.write_local_fifo(trial)
+def write_new(data):
+    for value in data:
+        gpio.write_local_fifo(value)
 
 @timeit
-def read_new(nwords, results):
+def read_new(nwords, readback):
     for i in xrange(nwords):
-        results[i] = gpio.read_local_fifo()
+        readback[i] = gpio.read_local_fifo()
 
-
+def bin8(val): return '{:08b}'.format(val)
 def inRed  (prt): return "\033[91m{}\033[00m" .format(prt)
 def inGreen(prt): return "\033[92m{}\033[00m" .format(prt)
-def check_matches(trials, results):
-    if results==trials:
+from pprint import pprint
+def check_matches(written, readback):
+    if readback==written:
         print('Reads match writes: '+inGreen('OK'))
     else:
         print(inRed('READS DO NOT MATCH WRITES!'))
-        paired = zip(trials,results)
-        mismatches = [pair for pair in paired if pair[1]-pair[0] != 0]
-        if len(mismatches) < 10:
-            print paired
-            print mismatches
+        paired = zip(written,readback)
+        mismatches = [
+            (i, map(bin8, pair), bin8(pair[0]^pair[1]))
+            for i, pair in enumerate(paired)
+            if pair[1]-pair[0] != 0
+        ]
+        pprint(('fifo_pos', ['writen', 'readback'], 'written XOR readback'))
+        if len(mismatches) < 20:
+            pprint(mismatches)
+        else:
+            pprint(mismatches[:20])
+            print('...')
         print(str(len(mismatches))+' mismatches found')
 
 
-def run_one(trials, title, wr_fn, rd_fn):
-    nwords=len(trials)
-    #print
-    #print title
-    #print('Writing '+str(nwords)+' words')
-    wr_fn(trials)
+def run_once(data, title, wr_fn, rd_fn):
+    wr_fn(data)
+    nwords=len(data)
+    readback = [None] * nwords
+    rd_fn(nwords, readback)
     
-    #print('Reading '+str(nwords)+' words')
-    results = [None] * nwords
-    rd_fn(nwords, results)
-    
-    check_matches(trials, results)
-    
+    check_matches(data, readback)
+
+def clear_fifo():
+    #clear the fifo by reading way over its depth
+    for _ in xrange(1<<15+1):
+        gpio.read_local_fifo()
+
 
 if __name__ == '__main__':
 
@@ -79,10 +87,8 @@ if __name__ == '__main__':
         sys.exit(1)
 
     gpio.set_bus_init()
-    #clear the fifo by reading way over its depth
-    for _ in xrange(33000):
-        gpio.read_local_fifo();
 
+    clear_fifo()
 
     combs = (
         ('1) old write and old read', write_old, read_old),
@@ -91,22 +97,29 @@ if __name__ == '__main__':
         ('4) new write and new read', write_new, read_new),
     )
 
-
-    seq_trials = [ i for i in range(1<<8)*(1<<7) ]
-
-    print
-    print('A) Sequential data: '+str(len(seq_trials))+' words')
-    for title, wr_fn, rd_fn in combs:
-        run_one(seq_trials, title, wr_fn, rd_fn)
-
-    
     import random
-    rand_trials = [ random.randint(0,(1<<8)-1) for _ in xrange(1<<15) ]
-
-    print
-    print('B) Random data: '+str(len(rand_trials))+' words')
-    for title, wr_fn, rd_fn in combs:
-        run_one(rand_trials, title, wr_fn, rd_fn)
+    data = (
+        ('Alternating 0x55-0xaa', [0x55,0xaa]*(1<<14) ),
+        ('Alternating 0x33-0xcc', [0x33,0xcc]*(1<<14) ),
+        ('Alternating 0x0f-0xf0', [0x0f,0xf0]*(1<<14) ),
+        ('Alternating 0x00-0xff', [0x00,0xff]*(1<<14) ),
+        ('Walking ones',          [ 1<<(i%8) for i in xrange(1<<15)]),
+        ('Walking zeroes',        [ ~(1<<(i%8)) & 0xff for i in xrange(1<<15)]),
+        ('Sequential values',     range(1<<8)*(1<<7) ),
+        ('Random but DATA3=0',    [ random.randint(0,(1<<8)-1) & 0xf7 for _ in xrange(1<<15) ]),
+        ('Random but DATA3=1',    [ random.randint(0,(1<<8)-1) | 0x08 for _ in xrange(1<<15) ]),
+        ('Random values',         [ random.randint(0,(1<<8)-1) for _ in xrange(1<<15) ]),
+        ('Other random values',   [ random.randint(0,(1<<8)-1) for _ in xrange(1<<15) ]),
+    )
+        
+    for datatitle, the_data in data:
+         print
+         print(datatitle+': '+str(len(the_data))+' words')
+         pprint(map(bin8,the_data[:4]))
+         print('...')
+         for combtitle, wr_fn, rd_fn in combs:
+             clear_fifo()
+             run_once(the_data, combtitle, wr_fn, rd_fn)
 
 
 
