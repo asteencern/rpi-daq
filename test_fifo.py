@@ -74,7 +74,7 @@ def run_once(data, title, wr_fn, rd_fn):
 
 def clear_fifo():
     #clear the fifo by reading way over its depth
-    for _ in xrange(1<<15+1):
+    for _ in xrange( (1<<15) + 1 ):
         gpio.read_local_fifo()
 
 
@@ -92,7 +92,7 @@ if __name__ == '__main__':
 
     combs = (
         #('1) old write and old read', write_old, read_old),
-        #('2) old write and new read', write_old, read_new),
+        ('2) old write and new read', write_old, read_new),
         #('3) new write and old read', write_new, read_old),
         ('4) new write and new read', write_new, read_new),
     )
@@ -101,7 +101,7 @@ if __name__ == '__main__':
     data = (
         ('Alternating 0x55-0xaa', [0x55,0xaa]*(1<<14) ),
         #('Alternating 0x33-0xcc', [0x33,0xcc]*(1<<14) ),
-        #('Alternating 0x0f-0xf0', [0x0f,0xf0]*(1<<14) ),
+        ('Alternating 0x0f-0xf0', [0x0f,0xf0]*(1<<14) ),
         #('Alternating 0x00-0xff', [0x00,0xff]*(1<<14) ),
         #('Walking ones',          [ 1<<(i%8) for i in xrange(1<<15)]),
         #('Walking zeroes',        [ ~(1<<(i%8)) & 0xff for i in xrange(1<<15)]),

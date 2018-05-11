@@ -1,31 +1,32 @@
 # https://gist.github.com/fm4dd/c663217935dc17f0fc73c9c81b0aa845
 
-# 100 ev in 14.700s
+# 100 ev in 10.5s
+#MYCFLAGS= -O2 -mtune=cortex-a53 -mcpu=cortex-a53 -mfloat-abi=hard -mfpu=neon-fp-armv8 -mneon-for-64bits
+
+# 100 ev in 10.4s
 #MYCFLAGS= -O3 -mtune=cortex-a53 -mcpu=cortex-a53 -mfloat-abi=hard -mfpu=neon-fp-armv8 -mneon-for-64bits
 
-# 100 ev in 17.370s
+# 100 ev in 12.0s
 #MYCFLAGS= -O0
 
-# 100 ev in 14.860s
+# 100 ev in 10.7s
 #MYCFLAGS= -O2
 
-# 100 ev in 14.670s
+# 100 ev in 10.6s
 #MYCFLAGS= -O1
 
-# 100 ev in 14.380s
-#MYCFLAGS= -Os
+# 100 ev in 10.6s
+MYCFLAGS= -Os -mcpu=cortex-a53 -mtune=cortex-a53
 
-# 100 ev in 14.700s
-#MYCFLAGS = -O2 -mcpu=cortex-a53 -mfpu=neon-fp-armv8 -mfloat-abi=hard -funsafe-math-optimizations 
+# 100 ev in 10.7s
+#MYCFLAGS = -O3 -mcpu=cortex-a53 -mtune=cortex-a53
 
 # Benchmarking command
 # make distclean; make benchmark
 
-MYCFLAGS = -O3
-
 all: lib/libgpiohb.so
 
-src/gpiohb.o: src/gpiohb.c lib/libbcm2835.so src/data_addr_luts.h
+src/gpiohb.o: src/gpiohb.c lib/libbcm2835.so src/data_addr_utils.h
 	g++ -Wall -c -I ./src/bcm2835/src -L ./lib -fPIC $(MYCFLAGS) $< -o $@
 
 lib/libgpiohb.so: src/gpiohb.o
