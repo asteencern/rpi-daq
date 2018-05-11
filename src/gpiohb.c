@@ -6,16 +6,16 @@
 #include <stdbool.h>
 #include <unistd.h>
 
-static unsigned char BusMode;         // global to remember status of gpio lines (IN or OUT)
-#define MODE_READ 0
-#define MODE_WRITE 1
+static bool BusMode;         // global to remember status of gpio lines (IN or OUT)
+#define MODE_READ  HIGH
+#define MODE_WRITE LOW
 
-#define  STpin RPI_V2_GPIO_P1_12
-#define  RWpin RPI_V2_GPIO_P1_11
+
 #define AD0pin RPI_V2_GPIO_P1_07
 #define AD1pin RPI_V2_GPIO_P1_13
 #define AD2pin RPI_V2_GPIO_P1_15
 #define AD3pin RPI_V2_GPIO_P1_29
+
 #define  D0pin RPI_V2_GPIO_P1_37
 #define  D1pin RPI_V2_GPIO_P1_36
 #define  D2pin RPI_V2_GPIO_P1_22
@@ -24,12 +24,13 @@ static unsigned char BusMode;         // global to remember status of gpio lines
 #define  D5pin RPI_V2_GPIO_P1_40
 #define  D6pin RPI_V2_GPIO_P1_33
 #define  D7pin RPI_V2_GPIO_P1_35
+
+#define  STpin RPI_V2_GPIO_P1_12
 #define ACKpin RPI_V2_GPIO_P1_16
+#define  RWpin RPI_V2_GPIO_P1_11
 
-#include "data_addr_luts.h"
 
-/* define commands for Master */
-
+/* define command packets sent to Hexaboard */
 #define CMD_IDLE         0x80
 #define CMD_RESETPULSE   0x88
 #define CMD_WRPRBITS     0x90
@@ -46,195 +47,203 @@ static unsigned char BusMode;         // global to remember status of gpio lines
 #define CMD_LOOPBACK     0xF8
 #define CMDH_LOOPBACK    0x1F
 
+/* Bus addresses to the master */
+#define ADDR_COMMAND        0x0
+#define ADDR_FIFO           0x1
+#define ADDR_FIFO_USED_LOW  0x2
+#define ADDR_FIFO_USED_HIGH 0x3
+#define ADDR_FIFO_FULL      0x4
+#define ADDR_TRIG_DELAY     0x5
+#define ADDR_DAC_HIGH       0x6
+#define ADDR_DAC_LOW        0x7
+#define ADDR_CALIB_PULSE    0x8
+#define ADDR_FIXED_ACQ      0x9
+#define ADDR_INSTR_TRIGGER  0xa
 
-#define ADDR_COMMAND		0x0
-#define ADDR_FIFO			0x1
-#define ADDR_FIFO_USED_LOW	0x2
-#define ADDR_FIFO_USED_HIGH	0x3
-#define ADDR_FIFO_FULL		0x4
-#define ADDR_TRIG_DELAY		0x5
-#define ADDR_DAC_HIGH		0x6
-#define ADDR_DAC_LOW		0x7
-#define ADDR_CALIB_PULSE	0x8
-#define ADDR_FIXED_ACQ		0x9
+#include "data_addr_luts.h"
 
 
-static uint32_t *BCM2835_GPIO_LEV_ADDR; 
+#define ADDR_MASK 0x08400030
+#define SET_FROM_ADDR(X)  \
+( (X>>3 & 0x1) <<AD3pin | \
+  (X>>2 & 0x1) <<AD2pin | \
+  (X>>1 & 0x1) <<AD1pin | \
+  (X    & 0x1) <<AD0pin   \
+)
+
+static uint8_t CurAddr;
+
+inline void write_address(uint8_t addr){
+  if (CurAddr != addr ){
+    uint32_t set = SET_FROM_ADDR(addr);
+    bcm2835_gpio_set_multi(set);
+    bcm2835_gpio_clr_multi(set^ADDR_MASK);
+    CurAddr = addr;
+  }
+}  
+
+#define DATA_MASK 0x07392000
+#define SET_FROM_DATA(X) \
+( (X>>7      ) <<D7pin | \
+  (X>>6 & 0x1) <<D6pin | \
+  (X>>5 & 0x1) <<D5pin | \
+  (X>>4 & 0x1) <<D4pin | \
+  (X>>3 & 0x1) <<D3pin | \
+  (X>>2 & 0x1) <<D2pin | \
+  (X>>1 & 0x1) <<D1pin | \
+  (X    & 0x1) <<D0pin   \
+)
+
+inline void write_data(uint8_t data){
+  uint32_t set = SET_FROM_DATA(data);
+  bcm2835_gpio_set_multi(set);
+  bcm2835_gpio_clr_multi(set^DATA_MASK);
+}  
+
+
+#define DEMANGLE_DATA(X)  \
+( (X>>D7pin & 0x1) << 7 | \
+  (X>>D6pin & 0x1) << 6 | \
+  (X>>D5pin & 0x1) << 5 | \
+  (X>>D4pin & 0x1) << 4 | \
+  (X>>D3pin & 0x1) << 3 | \
+  (X>>D2pin & 0x1) << 2 | \
+  (X>>D1pin & 0x1) << 1 | \
+  (X>>D0pin & 0x1) \
+)
+
+// Globals to cache the GPIO LEV and FSEL addresses
+static uint32_t *GPIO_LEV_ADDR;
+static uint32_t *GPIO_FSEL1_ADDR;
+static uint32_t *GPIO_FSEL2_ADDR;
+
+static const uint32_t DATA_FSEL1_MASK =
+    BCM2835_GPIO_FSEL_MASK << (D7pin % 10) * 3 |
+    BCM2835_GPIO_FSEL_MASK << (D6pin % 10) * 3 |
+    BCM2835_GPIO_FSEL_MASK << (D1pin % 10) * 3;
+static const uint32_t DATA_FSEL2_MASK =
+    BCM2835_GPIO_FSEL_MASK << (D5pin % 10) * 3 |
+    BCM2835_GPIO_FSEL_MASK << (D4pin % 10) * 3 |
+    BCM2835_GPIO_FSEL_MASK << (D3pin % 10) * 3 |
+    BCM2835_GPIO_FSEL_MASK << (D2pin % 10) * 3 |
+    BCM2835_GPIO_FSEL_MASK << (D0pin % 10) * 3;
+
+static const uint32_t DATA_FSEL1_OUTP =
+    BCM2835_GPIO_FSEL_OUTP << (D7pin % 10) * 3 |
+    BCM2835_GPIO_FSEL_OUTP << (D6pin % 10) * 3 |
+    BCM2835_GPIO_FSEL_OUTP << (D1pin % 10) * 3;
+static const uint32_t DATA_FSEL2_OUTP =
+    BCM2835_GPIO_FSEL_OUTP << (D5pin % 10) * 3 |
+    BCM2835_GPIO_FSEL_OUTP << (D4pin % 10) * 3 |
+    BCM2835_GPIO_FSEL_OUTP << (D3pin % 10) * 3 |
+    BCM2835_GPIO_FSEL_OUTP << (D2pin % 10) * 3 |
+    BCM2835_GPIO_FSEL_OUTP << (D0pin % 10) * 3;
+
+static const uint32_t DATA_FSEL1_INPT =
+    BCM2835_GPIO_FSEL_INPT << (D7pin % 10) * 3 |
+    BCM2835_GPIO_FSEL_INPT << (D6pin % 10) * 3 |
+    BCM2835_GPIO_FSEL_INPT << (D1pin % 10) * 3;
+static const uint32_t DATA_FSEL2_INPT =
+    BCM2835_GPIO_FSEL_INPT << (D5pin % 10) * 3 |
+    BCM2835_GPIO_FSEL_INPT << (D4pin % 10) * 3 |
+    BCM2835_GPIO_FSEL_INPT << (D3pin % 10) * 3 |
+    BCM2835_GPIO_FSEL_INPT << (D2pin % 10) * 3 |
+    BCM2835_GPIO_FSEL_INPT << (D0pin % 10) * 3;
 
 ////////////////////////////// LOW LEVEL ROUTINES //////////////////////////////
-extern "C" int set_bus_init()
+
+inline int check_ack(){
+  if(bcm2835_gpio_lev(ACKpin) == HIGH) {
+    return(0);
+  }
+  else {
+    return(-1);
+  }
+}
+
+extern "C" int8_t set_bus_init()
 {
   if(!bcm2835_init()){
-    printf("problem in gpiolib.c method set_but_init(): bcm2835_init() failed -> exit code");
+    printf("problem in gpiolib.c method set_bus_init(): bcm2835_init() failed -> exit code");
     exit(1);
   }
-
-  BCM2835_GPIO_LEV_ADDR = bcm2835_regbase(BCM2835_REGBASE_GPIO) + BCM2835_GPLEV0/4;
   
-  bcm2835_gpio_fsel(STpin,  BCM2835_GPIO_FSEL_OUTP);     // set pin direction
-  bcm2835_gpio_fsel(RWpin,  BCM2835_GPIO_FSEL_OUTP);     // set pin direction
-  bcm2835_gpio_fsel(ACKpin, BCM2835_GPIO_FSEL_INPT);     // set pin direction
+  uint32_t *GPIO_BASE = bcm2835_regbase(BCM2835_REGBASE_GPIO);
+  GPIO_FSEL1_ADDR = GPIO_BASE + BCM2835_GPFSEL1/4;
+  GPIO_FSEL2_ADDR = GPIO_BASE + BCM2835_GPFSEL2/4;
+  GPIO_LEV_ADDR   = GPIO_BASE + BCM2835_GPLEV0/4;
+  
+  // Set direction of handshake pins
+  bcm2835_gpio_fsel(STpin,  BCM2835_GPIO_FSEL_OUTP);
+  bcm2835_gpio_fsel(RWpin,  BCM2835_GPIO_FSEL_OUTP);
+  bcm2835_gpio_fsel(ACKpin, BCM2835_GPIO_FSEL_INPT);
 
-  bcm2835_gpio_fsel(D7pin, BCM2835_GPIO_FSEL_INPT);
-  bcm2835_gpio_fsel(D6pin, BCM2835_GPIO_FSEL_INPT);
-  bcm2835_gpio_fsel(D5pin, BCM2835_GPIO_FSEL_INPT);
-  bcm2835_gpio_fsel(D4pin, BCM2835_GPIO_FSEL_INPT);
-  bcm2835_gpio_fsel(D3pin, BCM2835_GPIO_FSEL_INPT);
-  bcm2835_gpio_fsel(D2pin, BCM2835_GPIO_FSEL_INPT);
-  bcm2835_gpio_fsel(D1pin, BCM2835_GPIO_FSEL_INPT);
-  bcm2835_gpio_fsel(D0pin, BCM2835_GPIO_FSEL_INPT);
-
+  // Set direction of address bus pins
   bcm2835_gpio_fsel(AD0pin, BCM2835_GPIO_FSEL_OUTP);
   bcm2835_gpio_fsel(AD1pin, BCM2835_GPIO_FSEL_OUTP);
   bcm2835_gpio_fsel(AD2pin, BCM2835_GPIO_FSEL_OUTP);
   bcm2835_gpio_fsel(AD3pin, BCM2835_GPIO_FSEL_OUTP);
-
-  bcm2835_gpio_set_multi(ADDR_SET_LUT(0));
-  bcm2835_gpio_clr_multi(ADDR_CLR_LUT(0));
-
-  BusMode = MODE_READ;                                // start in Read mode
-
-  if(bcm2835_gpio_lev(ACKpin) == HIGH) {
-    return(0);
-  }
-  else {
-    return(-1);
-  }
-}
-
-extern "C" int set_bus_read_mode()
-{
-  bcm2835_gpio_write(RWpin, HIGH);
-  bcm2835_gpio_write(STpin, HIGH);
   
-  bcm2835_gpio_fsel(D7pin, BCM2835_GPIO_FSEL_INPT);
-  bcm2835_gpio_fsel(D6pin, BCM2835_GPIO_FSEL_INPT);
-  bcm2835_gpio_fsel(D5pin, BCM2835_GPIO_FSEL_INPT);
-  bcm2835_gpio_fsel(D4pin, BCM2835_GPIO_FSEL_INPT);
-  bcm2835_gpio_fsel(D3pin, BCM2835_GPIO_FSEL_INPT);
-  bcm2835_gpio_fsel(D2pin, BCM2835_GPIO_FSEL_INPT);
-  bcm2835_gpio_fsel(D1pin, BCM2835_GPIO_FSEL_INPT);
-  bcm2835_gpio_fsel(D0pin, BCM2835_GPIO_FSEL_INPT);
+  // Set direction of data bus pins
+  bcm2835_peri_set_bits(GPIO_FSEL1_ADDR, DATA_FSEL1_INPT, DATA_FSEL1_MASK);
+  bcm2835_peri_set_bits(GPIO_FSEL2_ADDR, DATA_FSEL2_INPT, DATA_FSEL2_MASK);
+  
+  // Initialize address bus value
+  bcm2835_gpio_set_multi(ADDR_SET_LUT(ADDR_COMMAND));
+  bcm2835_gpio_clr_multi(ADDR_CLR_LUT(ADDR_COMMAND));
+  CurAddr = ADDR_COMMAND;
 
+  // Set RW to READ
+  bcm2835_gpio_write(RWpin, MODE_READ);
   BusMode = MODE_READ;
 
-  if(bcm2835_gpio_lev(ACKpin) == HIGH) {
-    return(0);
-  }
-  else {
-    return(-1);
-  }
+  // Set STrobe to high (values are latched on HIGH->LOW)
+  bcm2835_gpio_write(STpin, HIGH);
+
+  return check_ack();
 }
 
-extern "C" int set_bus_write_mode()
+extern "C" void set_bus_read_mode()
 {
-  bcm2835_gpio_write(RWpin, LOW);
-  bcm2835_gpio_write(STpin, HIGH);
+  bcm2835_gpio_write(RWpin, MODE_READ);
+  bcm2835_peri_set_bits(GPIO_FSEL1_ADDR, DATA_FSEL1_INPT, DATA_FSEL1_MASK);
+  bcm2835_peri_set_bits(GPIO_FSEL2_ADDR, DATA_FSEL2_INPT, DATA_FSEL2_MASK);
+  BusMode = MODE_READ;
   
-  bcm2835_gpio_fsel(D7pin, BCM2835_GPIO_FSEL_OUTP);
-  bcm2835_gpio_fsel(D6pin, BCM2835_GPIO_FSEL_OUTP);
-  bcm2835_gpio_fsel(D5pin, BCM2835_GPIO_FSEL_OUTP);
-  bcm2835_gpio_fsel(D4pin, BCM2835_GPIO_FSEL_OUTP);
-  bcm2835_gpio_fsel(D3pin, BCM2835_GPIO_FSEL_OUTP);
-  bcm2835_gpio_fsel(D2pin, BCM2835_GPIO_FSEL_OUTP);
-  bcm2835_gpio_fsel(D1pin, BCM2835_GPIO_FSEL_OUTP);
-  bcm2835_gpio_fsel(D0pin, BCM2835_GPIO_FSEL_OUTP);
-  
+  return;
+}
+
+extern "C" void set_bus_write_mode()
+{
+  bcm2835_gpio_write(RWpin, MODE_WRITE);
+  bcm2835_peri_set_bits(GPIO_FSEL1_ADDR, DATA_FSEL1_OUTP, DATA_FSEL1_MASK);
+  bcm2835_peri_set_bits(GPIO_FSEL2_ADDR, DATA_FSEL2_OUTP, DATA_FSEL2_MASK);
   BusMode = MODE_WRITE;
 
-  if(bcm2835_gpio_lev(ACKpin) == HIGH) {
-    return(0);
-  }
-  else {
-    return(-1);
-  }
+  return;
 }
 
-inline unsigned char demangle_data(uint32_t val){
-  return
-    (val>>D7pin & 0x1) << 7 |
-    (val>>D6pin & 0x1) << 6 |
-    (val>>D5pin & 0x1) << 5 |
-    (val>>D4pin & 0x1) << 4 |
-    (val>>D3pin & 0x1) << 3 |
-    (val>>D2pin & 0x1) << 2 |
-    (val>>D1pin & 0x1) << 1 |
-    (val>>D0pin & 0x1);
-}
-
-extern "C" int send_command(unsigned char c)
+extern "C" int8_t send_command(uint8_t c)
 {
   bool NoAck = false;
-
-  bcm2835_gpio_set_multi(ADDR_SET_LUT(ADDR_COMMAND));
-  bcm2835_gpio_clr_multi(ADDR_CLR_LUT(ADDR_COMMAND));
-
-  if(BusMode == MODE_READ)
-    set_bus_write_mode();
-
-  bcm2835_gpio_set_multi(DATA_SET_LUT(c));
-  bcm2835_gpio_clr_multi(DATA_CLR_LUT(c));
-
-  bcm2835_gpio_write(RWpin, LOW);
-  bcm2835_gpio_write(STpin, LOW);
-  bcm2835_gpio_write(STpin, LOW);
-  bcm2835_gpio_write(STpin, LOW);
-
-  if(bcm2835_gpio_lev(ACKpin) == HIGH) {
-    NoAck = true;
-    printf("\n Send Cmd, No ACK = 0");
-  }
-  bcm2835_gpio_write(STpin, HIGH);
-  bcm2835_gpio_write(STpin, HIGH);
-  bcm2835_gpio_write(STpin, HIGH);
-  bcm2835_gpio_write(RWpin, HIGH);
-
-  if(bcm2835_gpio_lev(ACKpin) == LOW) {
-    NoAck = true;
-    printf("\n Send Cmd, No ACK = 1");
-  }
-  if(NoAck){
-    return(-1);
-  }
-  else {
-    return(0);
-  }
-}
-
-extern "C" int fixed_acquisition(void)
-{
-  bool NoAck = false;
-  char c;
-  c = CMD_SETSTARTACQ | 1;
-
-  bcm2835_gpio_set_multi(ADDR_SET_LUT(ADDR_FIXED_ACQ));
-  bcm2835_gpio_clr_multi(ADDR_CLR_LUT(ADDR_FIXED_ACQ));
-
-  if(BusMode == MODE_READ)
-    set_bus_write_mode();
-
-  bcm2835_gpio_set_multi(DATA_SET_LUT(c));
-  bcm2835_gpio_clr_multi(DATA_CLR_LUT(c));
-
-  bcm2835_gpio_write(RWpin, LOW);
-  bcm2835_gpio_write(STpin, LOW);
-  bcm2835_gpio_write(STpin, LOW);
-  bcm2835_gpio_write(STpin, LOW);
   
+  write_address(ADDR_COMMAND);
+
+  if(BusMode == MODE_READ) set_bus_write_mode();
+
+  write_data(c);
+
+  bcm2835_gpio_write(STpin, LOW);
   if(bcm2835_gpio_lev(ACKpin) == HIGH) {
     NoAck = true;
     printf("\n Send Cmd, No ACK = 0");
   }
 
   bcm2835_gpio_write(STpin, HIGH);
-  bcm2835_gpio_write(STpin, HIGH);
-  bcm2835_gpio_write(STpin, HIGH);
-  bcm2835_gpio_write(RWpin, HIGH);
-
-  if(bcm2835_gpio_lev(ACKpin) == LOW) {
-    NoAck = true;
-    printf("\n Send Cmd, No ACK = 1");
-  }
+  //~ if(bcm2835_gpio_lev(ACKpin) == LOW) {
+    //~ NoAck = true;
+    //~ printf("\n Send Cmd, No ACK = 1");
+  //~ }
   if(NoAck){
     return(-1);
   }
@@ -243,141 +252,28 @@ extern "C" int fixed_acquisition(void)
   }
 }
 
-extern "C" int set_dac_high_word(unsigned char c)
+extern "C" uint8_t read_command(void)
 {
   bool NoAck = false;
 
-  bcm2835_gpio_set_multi(ADDR_SET_LUT(ADDR_DAC_HIGH));
-  bcm2835_gpio_clr_multi(ADDR_CLR_LUT(ADDR_DAC_HIGH));
+  write_address(ADDR_COMMAND);
 
-  if(BusMode == MODE_READ)
-    set_bus_write_mode();
+  if(BusMode == MODE_WRITE) set_bus_read_mode();
 
-  bcm2835_gpio_set_multi(DATA_SET_LUT(c));
-  bcm2835_gpio_clr_multi(DATA_CLR_LUT(c));
-
-  bcm2835_gpio_write(RWpin, LOW);
   bcm2835_gpio_write(STpin, LOW);
-  bcm2835_gpio_write(STpin, LOW);
-
-  if(bcm2835_gpio_lev(ACKpin) == HIGH) {
-    NoAck = true;
-  }
-  bcm2835_gpio_write(STpin, HIGH);
-  bcm2835_gpio_write(STpin, HIGH);
-  bcm2835_gpio_write(RWpin, HIGH);
-
-  if(bcm2835_gpio_lev(ACKpin) == LOW) {
-    NoAck = true;
-  }
-  if(NoAck){
-    return(-1);
-  }
-  else {
-    return(0);
-  }
-}
-
-extern "C" int set_dac_low_word(unsigned char c)
-{
-  bool NoAck = false;
-
-  bcm2835_gpio_set_multi(ADDR_SET_LUT(ADDR_DAC_LOW));
-  bcm2835_gpio_clr_multi(ADDR_CLR_LUT(ADDR_DAC_LOW));
-
-  if(BusMode == MODE_READ)
-    set_bus_write_mode();
-
-  bcm2835_gpio_set_multi(DATA_SET_LUT(c));
-  bcm2835_gpio_clr_multi(DATA_CLR_LUT(c));
-
-  bcm2835_gpio_write(RWpin, LOW);
-  bcm2835_gpio_write(STpin, LOW);
-  bcm2835_gpio_write(STpin, LOW);
-
-  if(bcm2835_gpio_lev(ACKpin) == HIGH) {
-    NoAck = true;
-  }
-  bcm2835_gpio_write(STpin, HIGH);
-  bcm2835_gpio_write(STpin, HIGH);
-  bcm2835_gpio_write(RWpin, HIGH);
-
-  if(bcm2835_gpio_lev(ACKpin) == LOW) {
-    NoAck = true;
-  }
-  if(NoAck){
-    return(-1);
-  }
-  else {
-    return(0);
-  }
-}
-
-extern "C" int set_trigger_delay(unsigned char c)
-{
-  bool NoAck = false;
-
-  bcm2835_gpio_set_multi(ADDR_SET_LUT(ADDR_TRIG_DELAY));
-  bcm2835_gpio_clr_multi(ADDR_CLR_LUT(ADDR_TRIG_DELAY));
-
-  if(BusMode == MODE_READ)
-    set_bus_write_mode();
-
-  bcm2835_gpio_set_multi(DATA_SET_LUT(c));
-  bcm2835_gpio_clr_multi(DATA_CLR_LUT(c));
-
-  bcm2835_gpio_write(RWpin, LOW);
-  bcm2835_gpio_write(STpin, LOW);
-  bcm2835_gpio_write(STpin, LOW);
-
-  if(bcm2835_gpio_lev(ACKpin) == HIGH) {
-    NoAck = true;
-  }
-  bcm2835_gpio_write(STpin, HIGH);
-  bcm2835_gpio_write(STpin, HIGH);
-  bcm2835_gpio_write(RWpin, HIGH);
-
-  if(bcm2835_gpio_lev(ACKpin) == LOW) {
-    NoAck = true;
-  }
-  if(NoAck){
-    return(-1);
-  }
-  else {
-    return(0);
-  }
-}
-
-extern "C" int read_command(void)
-{
-  bool NoAck = false;
-
-  bcm2835_gpio_set_multi(ADDR_SET_LUT(ADDR_COMMAND));
-  bcm2835_gpio_clr_multi(ADDR_CLR_LUT(ADDR_COMMAND));
-
-  if(BusMode == MODE_WRITE)
-    set_bus_read_mode();
-
-  bcm2835_gpio_write(RWpin, HIGH);
-  bcm2835_gpio_write(STpin, LOW);
-  bcm2835_gpio_write(STpin, LOW);
-  bcm2835_gpio_write(STpin, LOW);
-
   if(bcm2835_gpio_lev(ACKpin) == HIGH) {
     NoAck = true;
     printf("\n Read Cmd, No ACK = 0");
   }
 
-  unsigned char v = demangle_data( bcm2835_peri_read(BCM2835_GPIO_LEV_ADDR) );
+  uint32_t val = bcm2835_peri_read(GPIO_LEV_ADDR);
+  uint8_t v = DEMANGLE_DATA(val); 
 
   bcm2835_gpio_write(STpin, HIGH);
-  bcm2835_gpio_write(STpin, HIGH);
-  bcm2835_gpio_write(STpin, HIGH);
-
-  if(bcm2835_gpio_lev(ACKpin) == LOW) {
-    NoAck = true;
-    printf("\n Read Cmd, No ACK = 1");
-  }
+  //~ if(bcm2835_gpio_lev(ACKpin) == LOW) {
+    //~ NoAck = true;
+    //~ printf("\n Read Cmd, No ACK = 1");
+  //~ }
   if(NoAck){
     return(-1);
   }
@@ -386,32 +282,145 @@ extern "C" int read_command(void)
   }
 }
 
-// Read used word counter on Max10 FIFO, low part
-extern "C" int read_usedwl(){
+extern "C" int fixed_acquisition(void)
+{
+  bool NoAck = false;
+  uint8_t c = CMD_SETSTARTACQ | 1;
+
+  write_address(ADDR_FIXED_ACQ);
+
+  if(BusMode == MODE_READ) set_bus_write_mode();
+
+  write_data(c);
+
+  bcm2835_gpio_write(STpin, LOW);
+  if(bcm2835_gpio_lev(ACKpin) == HIGH) {
+    NoAck = true;
+    printf("\n Send Cmd, No ACK = 0");
+  }
+
+  bcm2835_gpio_write(STpin, HIGH);
+  //~ if(bcm2835_gpio_lev(ACKpin) == LOW) {
+    //~ NoAck = true;
+    //~ printf("\n Send Cmd, No ACK = 1");
+  //~ }
+  if(NoAck){
+    return(-1);
+  }
+  else {
+    return(0);
+  }
+}
+
+extern "C" int set_dac_high_word(uint8_t c)
+{
   bool NoAck = false;
 
-  bcm2835_gpio_set_multi(ADDR_SET_LUT(0x2));
-  bcm2835_gpio_clr_multi(ADDR_CLR_LUT(0x2));
+  write_address(ADDR_DAC_HIGH);
 
-  if(BusMode == MODE_WRITE)
-    set_bus_read_mode();
+  if(BusMode == MODE_READ) set_bus_write_mode();
 
-  bcm2835_gpio_write(RWpin, HIGH);
+  write_data(c);
+
   bcm2835_gpio_write(STpin, LOW);
-  bcm2835_gpio_write(STpin, LOW);
-
   if(bcm2835_gpio_lev(ACKpin) == HIGH) {
     NoAck = true;
   }
 
-  unsigned char v = demangle_data( bcm2835_peri_read(BCM2835_GPIO_LEV_ADDR) );
-
   bcm2835_gpio_write(STpin, HIGH);
-  bcm2835_gpio_write(STpin, HIGH);
+  //~ if(bcm2835_gpio_lev(ACKpin) == LOW) {
+    //~ NoAck = true;
+  //~ }
+  if(NoAck){
+    return(-1);
+  }
+  else {
+    return(0);
+  }
+}
 
-  if(bcm2835_gpio_lev(ACKpin) == LOW) {
+extern "C" int set_dac_low_word(uint8_t c)
+{
+  bool NoAck = false;
+
+  write_address(ADDR_DAC_LOW);
+
+  if(BusMode == MODE_READ) set_bus_write_mode();
+
+  write_data(c);
+
+  bcm2835_gpio_write(STpin, LOW);
+  if(bcm2835_gpio_lev(ACKpin) == HIGH) {
     NoAck = true;
   }
+
+  bcm2835_gpio_write(STpin, HIGH);
+  //~ if(bcm2835_gpio_lev(ACKpin) == LOW) {
+    //~ NoAck = true;
+  //~ }
+  if(NoAck){
+    return(-1);
+  }
+  else {
+    return(0);
+  }
+}
+
+extern "C" int set_dac_word(uint16_t c){
+  // Format of input c in terms of output
+  // [----|hhhh|hhhh|llll]
+  return
+    set_dac_high_word( (c>>4) & 0x0ff ) +
+    set_dac_low_word (   c    & 0x00f );
+}
+
+extern "C" int set_trigger_delay(uint8_t c)
+{
+  bool NoAck = false;
+
+  write_address(ADDR_TRIG_DELAY);
+
+  if(BusMode == MODE_READ) set_bus_write_mode();
+
+  write_data(c);
+
+  bcm2835_gpio_write(STpin, LOW);
+  if(bcm2835_gpio_lev(ACKpin) == HIGH) {
+    NoAck = true;
+  }
+
+  bcm2835_gpio_write(STpin, HIGH);
+  //~ if(bcm2835_gpio_lev(ACKpin) == LOW) {
+    //~ NoAck = true;
+  //~ }
+  if(NoAck){
+    return(-1);
+  }
+  else {
+    return(0);
+  }
+}
+
+// Read used word counter on Max10 FIFO, low part
+extern "C" uint8_t read_usedwl(){
+  bool NoAck = false;
+
+  write_address(ADDR_FIFO_USED_LOW);
+
+  if(BusMode == MODE_WRITE) set_bus_read_mode();
+
+  bcm2835_gpio_write(STpin, LOW);
+  if(bcm2835_gpio_lev(ACKpin) == HIGH) {
+    NoAck = true;
+  }
+
+  uint32_t val = bcm2835_peri_read(GPIO_LEV_ADDR);
+  uint8_t v = DEMANGLE_DATA(val); 
+
+  bcm2835_gpio_write(STpin, HIGH);
+  //~ if(bcm2835_gpio_lev(ACKpin) == LOW) {
+    //~ NoAck = true;
+  //~ }
   
   if(NoAck){
     return(-1);
@@ -422,31 +431,25 @@ extern "C" int read_usedwl(){
 }
 
 // Read used word counter on Max10 FIFO, high part
-extern "C" int read_usedwh(){
+extern "C" uint8_t read_usedwh(){
   bool NoAck = false;
 
-  bcm2835_gpio_set_multi(ADDR_SET_LUT(0x3));
-  bcm2835_gpio_clr_multi(ADDR_CLR_LUT(0x3));
+  write_address(ADDR_FIFO_USED_HIGH);
 
-  if(BusMode == MODE_WRITE)
-    set_bus_read_mode();
-
-  bcm2835_gpio_write(RWpin, HIGH);
+  if(BusMode == MODE_WRITE) set_bus_read_mode();
+  
   bcm2835_gpio_write(STpin, LOW);
-  bcm2835_gpio_write(STpin, LOW);
-
   if(bcm2835_gpio_lev(ACKpin) == HIGH) {
     NoAck = true;
   }
 
-  unsigned char v = demangle_data( bcm2835_peri_read(BCM2835_GPIO_LEV_ADDR) );
+  uint32_t val = bcm2835_peri_read(GPIO_LEV_ADDR);
+  uint8_t v = DEMANGLE_DATA(val); 
   
   bcm2835_gpio_write(STpin, HIGH);
-  bcm2835_gpio_write(STpin, HIGH);
-
-  if(bcm2835_gpio_lev(ACKpin) == LOW) {
-    NoAck = true;
-  }
+  //~ if(bcm2835_gpio_lev(ACKpin) == LOW) {
+    //~ NoAck = true;
+  //~ }
   
   if(NoAck){
     return(-1);
@@ -456,16 +459,136 @@ extern "C" int read_usedwh(){
   }
 }
 
-extern "C" short read_usedw(){
+extern "C" uint16_t read_usedw(){
   return (read_usedwh() << 8) | read_usedwl();
 }
 
+// Write into the local FIFO
+extern "C" int write_local_fifo(uint8_t c){
+  bool NoAck = false;
+
+  write_address(ADDR_FIFO);
+
+  if(BusMode == MODE_READ) set_bus_write_mode();
+
+  write_data(c);
+
+  bcm2835_gpio_write(STpin, LOW);
+  if(bcm2835_gpio_lev(ACKpin) == HIGH) {
+    NoAck = true;
+  }
+
+  bcm2835_gpio_write(STpin, HIGH);
+  //~ if(bcm2835_gpio_lev(ACKpin) == LOW) {
+    //~ NoAck = true;
+  //~ }
+
+  if(NoAck){
+    return(-1);
+  }
+  else {
+    return(0);
+  }
+}
+
+// Read from the local FIFO
+extern "C" uint_fast8_t read_local_fifo(){
+
+  write_address(ADDR_FIFO);
+  
+  if(BusMode == MODE_WRITE) set_bus_read_mode();
+
+  bcm2835_gpio_write(STpin, LOW);
+  bcm2835_gpio_lev(ACKpin); // This is just to make sure STpin goes down.
+
+  uint32_t val = bcm2835_peri_read(GPIO_LEV_ADDR);
+  uint8_t v = DEMANGLE_DATA(val); 
+  
+  bcm2835_gpio_write(STpin, HIGH);
+
+  return(v);
+}
+
+// Write into the HB FIFO; only 3 bits can fit
+extern "C" int test_remote_fifo(uint8_t c){
+  uint8_t val = CMD_LOOPBRFIFO | (c & 0x07);
+  send_command( val );
+  uint8_t ret = read_command();
+  if(val != ret){
+    printf("Mismatching readback in %s: 0x%02x sent, 0x%02x received\n", __FUNCTION__, val, ret);
+  }
+  return ret & 0x7;
+}
+
+// Write into the HB loopback register; only 3 bits can fit
+extern "C" int test_remote_loopback(uint8_t c){
+  uint8_t val = CMD_LOOPBACK | (c & 0x07);
+  send_command( val );
+  uint8_t ret = read_command();
+  if(val != ret){
+    printf("Mismatching readback in %s: 0x%02x sent, 0x%02x received\n", __FUNCTION__, val, ret);
+  }
+  return ret & 0x7;
+}
+
+
+extern "C" int calib_gen(){
+  bool NoAck = false;
+  
+  write_address(ADDR_CALIB_PULSE);
+
+  if(BusMode == MODE_READ) set_bus_write_mode();
+
+  bcm2835_gpio_write(STpin, LOW);
+  if(bcm2835_gpio_lev(ACKpin) == HIGH) {
+    NoAck = true;
+  }
+
+  bcm2835_gpio_write(STpin, HIGH);
+  //~ if(bcm2835_gpio_lev(ACKpin) == LOW) {
+    //~ NoAck = true;
+  //~ }
+
+  if(NoAck){
+    return(-1);
+  }
+  else {
+    return(0);
+  }
+}
+
+extern "C" int instrumental_trigger(){
+  bool NoAck = false;
+
+  write_address(ADDR_INSTR_TRIGGER);
+
+  if(BusMode == MODE_READ) set_bus_write_mode();
+  
+  bcm2835_gpio_write(STpin, LOW);
+  if(bcm2835_gpio_lev(ACKpin) == HIGH) {
+    NoAck = true;
+    printf("\n Instrumental trigger Gen, ST = 0, NO ACK -> 0 transition\n");
+  }
+
+  bcm2835_gpio_write(STpin, HIGH);
+  //~ if(bcm2835_gpio_lev(ACKpin) == LOW) {
+    //~ NoAck = true;
+    //~ printf("\n Instrumental trigger Gen, ST = 1, NO ACK -> 1 transition\n");
+  //~ }
+  
+  if(NoAck){
+    return(-1);
+  }
+  else {
+    return(0);
+  }
+}
 
 // Write into the local FIFO
-extern "C" int write_local_fifo_old(unsigned char c){
+extern "C" int write_local_fifo_old(uint8_t c){
   bool NoAck;
-  unsigned char l;
-  unsigned char r;
+  //unsigned char l;
+  //unsigned char r;
   NoAck = false;
   unsigned char lev;
 
@@ -473,6 +596,7 @@ extern "C" int write_local_fifo_old(unsigned char c){
   bcm2835_gpio_write(AD1pin, LOW);
   bcm2835_gpio_write(AD2pin, LOW);
   bcm2835_gpio_write(AD3pin, LOW);
+  CurAddr = 0x1;
 
   if(BusMode == MODE_READ)
     set_bus_write_mode();
@@ -513,17 +637,17 @@ extern "C" int write_local_fifo_old(unsigned char c){
 
 // Read from the local FIFO
 extern "C" int read_local_fifo_old(){
-  bool NoAck;
+  //bool NoAck = false;
   unsigned char l;
   unsigned char r;
   int result;
   unsigned char lev;
-  NoAck = false;
-
+ 
   bcm2835_gpio_write(AD0pin, HIGH);
   bcm2835_gpio_write(AD1pin, LOW);
   bcm2835_gpio_write(AD2pin, LOW);
   bcm2835_gpio_write(AD3pin, LOW);
+  CurAddr = 1;
 
   if(BusMode == MODE_WRITE)
     set_bus_read_mode();
@@ -534,7 +658,7 @@ extern "C" int read_local_fifo_old(){
 
   lev = bcm2835_gpio_lev(	ACKpin	);	                // check that ACK is LOW
   if(lev == HIGH) {
-    NoAck = true;
+    //NoAck = true;
   }
 
   r = 0;
@@ -563,85 +687,23 @@ extern "C" int read_local_fifo_old(){
 
   lev = bcm2835_gpio_lev(	ACKpin	);	                // check that ACK is HIGH
   if(lev == LOW) {
-    NoAck = true;
+    //NoAck = true;
   }
 
   return(result);
 }
 
 
-// Write into the local FIFO
-extern "C" int write_local_fifo(unsigned char c){
-  bool NoAck = false;
-
-  bcm2835_gpio_set_multi(ADDR_SET_LUT(1));
-  bcm2835_gpio_clr_multi(ADDR_CLR_LUT(1));
-
-  if(BusMode == MODE_READ)
-    set_bus_write_mode();
-
-  bcm2835_gpio_set_multi(DATA_SET_LUT(c));
-  bcm2835_gpio_clr_multi(DATA_CLR_LUT(c));
-
-  bcm2835_gpio_write(STpin, LOW);
-  //bcm2835_gpio_write(STpin, LOW);
-  if(bcm2835_gpio_lev(ACKpin) == HIGH) {
-    NoAck = true;
-  }
-
-  bcm2835_gpio_write(STpin, HIGH);
-  //bcm2835_gpio_write(STpin, HIGH);
-  if(bcm2835_gpio_lev(ACKpin) == LOW) {
-    NoAck = true;
-  }
-
-  if(NoAck){
-    return(-1);
-  }
-  else {
-    return(0);
-  }
-}
-
-// Read from the local FIFO
-extern "C" int read_local_fifo(){
-  bool NoAck = false;
-
-  bcm2835_gpio_set_multi(ADDR_SET_LUT(1));
-  bcm2835_gpio_clr_multi(ADDR_CLR_LUT(1));
-
-  if(BusMode == MODE_WRITE)
-    set_bus_read_mode();
-
-  bcm2835_gpio_write(STpin, LOW);
-  //bcm2835_gpio_write(STpin, LOW);
-  if(bcm2835_gpio_lev(ACKpin) == HIGH) {
-    NoAck = true;
-  }
-
-  unsigned char v = demangle_data( bcm2835_peri_read(BCM2835_GPIO_LEV_ADDR) );
-  
-  bcm2835_gpio_write(STpin, HIGH);
-  //bcm2835_gpio_write(STpin, HIGH);
-
-  /* if(bcm2835_gpio_lev(ACKpin) == LOW) { */
-  /*   NoAck = true; */
-  /* } */
-
-  return(v);
-}
-
-
 // converts the programming sequence of 48 bytes into 384 single bytes where the LSB is 
 // the bit to be programmed
-extern "C" void ConvertProgrStrBytetoBit(unsigned char * bytes, unsigned char * bits)
+extern "C" void ConvertProgrStrBytetoBit(uint8_t * bytes, uint8_t * bits)
 {
   int i, j;
-  unsigned char b;
+  uint8_t b;
   for (i = 0; i < 48; i = i + 1){
-    b = *(bytes + sizeof(unsigned char) * i);
+    b = *(bytes + sizeof(uint8_t) * i);
     for(j = 0; j < 8; j = j + 1){
-      *(bits + sizeof(unsigned char) * j + sizeof(unsigned char) * i * 8) = 1 & (b >> (7-j));	
+      *(bits + sizeof(uint8_t) * j + sizeof(uint8_t) * i * 8) = 1 & (b >> (7-j));	
     }	
   }
 }
@@ -649,58 +711,58 @@ extern "C" void ConvertProgrStrBytetoBit(unsigned char * bytes, unsigned char * 
 
 // converts the programming sequence of 48*4 bytes into 1536 single bytes where the LSB is 
 // the bit to be programmed
-extern "C" void ConvertProgrStrBytetoBit_4chips(unsigned char * bytes, unsigned char * bits)
+extern "C" void ConvertProgrStrBytetoBit_4chips(uint8_t * bytes, uint8_t * bits)
 {
   int i, j;
-  unsigned char b;
+  uint8_t b;
   for (i = 0; i < 192; i = i + 1){
-    b = *(bytes + sizeof(unsigned char) * i);
+    b = *(bytes + sizeof(uint8_t) * i);
     for(j = 0; j < 8; j = j + 1){
-      *(bits + sizeof(unsigned char) * j + sizeof(unsigned char) * i * 8) = 1 & (b >> (7-j));	
+      *(bits + sizeof(uint8_t) * j + sizeof(uint8_t) * i * 8) = 1 & (b >> (7-j));	
     }	
   }
 }
 
-extern "C" void ConvertProgrStrBittoByte(unsigned char * bits, unsigned char * bytes)
+extern "C" void ConvertProgrStrBittoByte(uint8_t * bits, uint8_t * bytes)
 {
   int i, j;
-  unsigned char b;
+  uint8_t b;
   for (i = 0; i < 48; i = i + 1){
     b = 0;
     for(j = 0; j < 8; j = j + 1){
-      b = b | ( *(bits + sizeof(unsigned char) * i*8 + sizeof(unsigned char) * j) << (7 - j));			
+      b = b | ( *(bits + sizeof(uint8_t) * i*8 + sizeof(uint8_t) * j) << (7 - j));			
     }
-    *(bytes + sizeof(unsigned char) * i) = b;	
+    *(bytes + sizeof(uint8_t) * i) = b;	
   }
 }
 
 // Converts a string of bits in a string of bytes (4 chips)
-extern "C" void ConvertProgrStrBittoByte_4chips(unsigned char * bits, unsigned char * bytes)
+extern "C" void ConvertProgrStrBittoByte_4chips(uint8_t * bits, uint8_t * bytes)
 {
   int i, j;
-  unsigned char b;
+  uint8_t b;
   for (i = 0; i < 192; i = i + 1){
     b = 0;
     for(j = 0; j < 8; j = j + 1){
-      b = b | ( *(bits + sizeof(unsigned char) * i*8 + sizeof(unsigned char) * j) << (7 - j));			
+      b = b | ( *(bits + sizeof(uint8_t) * i*8 + sizeof(uint8_t) * j) << (7 - j));			
     }
-    *(bytes + sizeof(unsigned char) * i) = b;	
+    *(bytes + sizeof(uint8_t) * i) = b;	
   }
 }
 
 // program the 48 bytes configuration string into the SK2 3 bits at a time
 // for all 4 chips on Hexaboard
 // and return pointer to previous configuration string, assumes pointing to bit sequence
-extern "C" int prog384(unsigned char * pNew, unsigned char * pPrevious)
+extern "C" int prog384(uint8_t * pNew, uint8_t * pPrevious)
 {
-  int chip, bit, j, byte_index, bit_index;
-  unsigned char bit2, bit1, bit0, bits, cmd;
-  unsigned char dout;
+  int chip, bit;// j, byte_index, bit_index;
+  uint8_t bit2, bit1, bit0, bits, cmd;
+  uint8_t dout;
   for(chip = 0; chip < 4; chip=chip+1){
     for(bit = 0; bit < 384; bit = bit + 3){
-      bit2 = *(pNew + sizeof(unsigned char) * bit + 0);
-      bit1 = *(pNew + sizeof(unsigned char) * bit + 1);
-      bit0 = *(pNew + sizeof(unsigned char) * bit + 2);
+      bit2 = *(pNew + sizeof(uint8_t) * bit + 0);
+      bit1 = *(pNew + sizeof(uint8_t) * bit + 1);
+      bit0 = *(pNew + sizeof(uint8_t) * bit + 2);
       bits = (bit2 << 2) | (bit1 << 1) | bit0;
       cmd = CMD_WRPRBITS | bits;
       send_command(cmd);
@@ -709,9 +771,9 @@ extern "C" int prog384(unsigned char * pNew, unsigned char * pPrevious)
       bit2 = (bits >> 2) & 1;
       bit1 = (bits >> 1) & 1;
       bit0 = bits & 1;
-      *(pPrevious + sizeof(unsigned char) * bit + 0) = bit2;
-      *(pPrevious + sizeof(unsigned char) * bit + 1) = bit1;
-      *(pPrevious + sizeof(unsigned char) * bit + 2) = bit0;
+      *(pPrevious + sizeof(uint8_t) * bit + 0) = bit2;
+      *(pPrevious + sizeof(uint8_t) * bit + 1) = bit1;
+      *(pPrevious + sizeof(uint8_t) * bit + 2) = bit0;
     }
   }
   return(0);
@@ -719,15 +781,15 @@ extern "C" int prog384(unsigned char * pNew, unsigned char * pPrevious)
 
 // program the 192 bytes configuration string into the SK2 3 bits at a time
 // and return pointer to previous configuration string, assumes pointing to bit sequence
-extern "C" int prog384_4chips(unsigned char * pNew, unsigned char * pPrevious)
+extern "C" int prog384_4chips(uint8_t * pNew, uint8_t * pPrevious)
 {
-  int chip, bit, j, byte_index, bit_index;
-  unsigned char bit2, bit1, bit0, bits, cmd;
-  unsigned char dout;
+  int bit;//chip, bit, j, byte_index, bit_index;
+  uint8_t bit2, bit1, bit0, bits, cmd;
+  uint8_t dout;
   for(bit = 0; bit < 1536; bit = bit + 3){
-    bit2 = *(pNew + sizeof(unsigned char) * bit + 0);
-    bit1 = *(pNew + sizeof(unsigned char) * bit + 1);
-    bit0 = *(pNew + sizeof(unsigned char) * bit + 2);
+    bit2 = *(pNew + sizeof(uint8_t) * bit + 0);
+    bit1 = *(pNew + sizeof(uint8_t) * bit + 1);
+    bit0 = *(pNew + sizeof(uint8_t) * bit + 2);
     bits = (bit2 << 2) | (bit1 << 1) | bit0;
     cmd = CMD_WRPRBITS | bits;
     send_command(cmd);
@@ -736,9 +798,9 @@ extern "C" int prog384_4chips(unsigned char * pNew, unsigned char * pPrevious)
     bit2 = (bits >> 2) & 1;
     bit1 = (bits >> 1) & 1;
     bit0 = bits & 1;
-    *(pPrevious + sizeof(unsigned char) * bit + 0) = bit2;
-    *(pPrevious + sizeof(unsigned char) * bit + 1) = bit1;
-    *(pPrevious + sizeof(unsigned char) * bit + 2) = bit0;
+    *(pPrevious + sizeof(uint8_t) * bit + 0) = bit2;
+    *(pPrevious + sizeof(uint8_t) * bit + 1) = bit1;
+    *(pPrevious + sizeof(uint8_t) * bit + 2) = bit0;
   }
   return(0);
 }
@@ -753,12 +815,12 @@ extern "C" int progandverify384(unsigned char * pNew, unsigned char * pPrevious)
 */
 
 
-extern "C" int progandverify48(unsigned char * pConfBytes, unsigned char * pPrevious)
+extern "C" int progandverify48(uint8_t * pConfBytes, uint8_t * pPrevious)
 {
-  unsigned char *pNewConfBits ;  
-  unsigned char *pOldConfBits ;
-  pNewConfBits = (unsigned char *) malloc(sizeof(unsigned char) * 384);
-  pOldConfBits = (unsigned char *) malloc(sizeof(unsigned char) * 384);
+  uint8_t *pNewConfBits ;  
+  uint8_t *pOldConfBits ;
+  pNewConfBits = (uint8_t *) malloc(sizeof(uint8_t) * 384);
+  pOldConfBits = (uint8_t *) malloc(sizeof(uint8_t) * 384);
   ConvertProgrStrBytetoBit( pConfBytes, pNewConfBits);
   prog384(pNewConfBits, pOldConfBits);
   prog384(pNewConfBits, pOldConfBits);
@@ -768,12 +830,12 @@ extern "C" int progandverify48(unsigned char * pConfBytes, unsigned char * pPrev
   return(0);
 }
 
-extern "C" int progandverify48_4chips(unsigned char * pConfBytes, unsigned char * pPrevious)
+extern "C" int progandverify48_4chips(uint8_t * pConfBytes, uint8_t * pPrevious)
 {
-  unsigned char *pNewConfBits ;  
-  unsigned char *pOldConfBits ;
-  pNewConfBits = (unsigned char *) malloc(sizeof(unsigned char) * 384 * 4);
-  pOldConfBits = (unsigned char *) malloc(sizeof(unsigned char) * 384 * 4);
+  uint8_t *pNewConfBits ;  
+  uint8_t *pOldConfBits ;
+  pNewConfBits = (uint8_t *) malloc(sizeof(uint8_t) * 384 * 4);
+  pOldConfBits = (uint8_t *) malloc(sizeof(uint8_t) * 384 * 4);
   ConvertProgrStrBytetoBit_4chips( pConfBytes, pNewConfBits);
   prog384_4chips(pNewConfBits, pOldConfBits);
   prog384_4chips(pNewConfBits, pOldConfBits);
@@ -783,80 +845,16 @@ extern "C" int progandverify48_4chips(unsigned char * pConfBytes, unsigned char 
   return(0);
 }
 
-extern "C" int read_configuration_string(unsigned char * pConfBytes, unsigned char * pPrevious)
+extern "C" int read_configuration_string(uint8_t * pConfBytes, uint8_t * pPrevious)
 {
-  unsigned char *pNewConfBits ;  
-  unsigned char *pOldConfBits ;
-  pNewConfBits = (unsigned char *) malloc(sizeof(unsigned char) * 384 * 4);
-  pOldConfBits = (unsigned char *) malloc(sizeof(unsigned char) * 384 * 4);
+  uint8_t *pNewConfBits ;  
+  uint8_t *pOldConfBits ;
+  pNewConfBits = (uint8_t *) malloc(sizeof(uint8_t) * 384 * 4);
+  pOldConfBits = (uint8_t *) malloc(sizeof(uint8_t) * 384 * 4);
   ConvertProgrStrBytetoBit_4chips( pConfBytes, pNewConfBits);
   prog384_4chips(pNewConfBits, pOldConfBits);
   ConvertProgrStrBittoByte_4chips(pOldConfBits, pPrevious);
   free(pNewConfBits);
   free(pOldConfBits);
   return(0);
-}
-
-extern "C" int calib_gen(){
-  bool NoAck;
-  unsigned char lev;
-  bcm2835_gpio_write(AD0pin, LOW);
-  bcm2835_gpio_write(AD1pin, LOW);
-  bcm2835_gpio_write(AD2pin, LOW);
-  bcm2835_gpio_write(AD3pin, HIGH);
-  
-  bcm2835_gpio_write(RWpin, LOW);
-  bcm2835_gpio_write(STpin, LOW);
-  bcm2835_gpio_write(STpin, LOW);
-  lev = bcm2835_gpio_lev(	ACKpin	);	                // check that ACK is LOW
-  if(lev == HIGH) {
-    NoAck = true;
-  }
-  bcm2835_gpio_write(STpin, HIGH);
-  bcm2835_gpio_write(STpin, HIGH);
-  lev = bcm2835_gpio_lev(	ACKpin	);	                // check that ACK is HIGH
-  if(lev == LOW) {
-    NoAck = true;
-  }
-  if(NoAck){
-    return(-1);
-  }
-  else {
-    return(0);
-  }
-  bcm2835_gpio_write(RWpin, HIGH);
-  
-}
-
-extern "C" int instrumental_trigger(){
-  bool NoAck;
-  unsigned char lev;
-  bcm2835_gpio_write(AD0pin, LOW);
-  bcm2835_gpio_write(AD1pin, HIGH);
-  bcm2835_gpio_write(AD2pin, LOW);
-  bcm2835_gpio_write(AD3pin, HIGH);
-
-  bcm2835_gpio_write(RWpin, LOW);
-  bcm2835_gpio_write(STpin, LOW);
-  bcm2835_gpio_write(STpin, LOW);
-  lev = bcm2835_gpio_lev(	ACKpin	);	                // check that ACK is LOW
-  if(lev == HIGH) {
-    NoAck = true;
-    printf("\n Calibration Pulse Gen, ST = 0, NO ACK -> 0 transition\n");
-  }
-  bcm2835_gpio_write(STpin, HIGH);
-  bcm2835_gpio_write(STpin, HIGH);
-  lev = bcm2835_gpio_lev(	ACKpin	);	                // check that ACK is HIGH
-  if(lev == LOW) {
-    NoAck = true;
-    printf("\n Calibration Pulse Gen, ST = 1, NO ACK -> 1 transition\n");
-  }
-  if(NoAck){
-    return(-1);
-  }
-  else {
-    return(0);
-  }
-  bcm2835_gpio_write(RWpin, HIGH);
-  
 }

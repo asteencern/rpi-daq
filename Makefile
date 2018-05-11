@@ -15,21 +15,18 @@
 # 100 ev in 14.380s
 #MYCFLAGS= -Os
 
-# 100 ev in 17.540s
-#MYCFLAGS=
-
 # 100 ev in 14.700s
 #MYCFLAGS = -O2 -mcpu=cortex-a53 -mfpu=neon-fp-armv8 -mfloat-abi=hard -funsafe-math-optimizations 
 
 # Benchmarking command
-# make distclean; make; time (python run_local.py --dataNotSaved > /dev/null)
+# make distclean; make benchmark
 
 MYCFLAGS = -O3
 
 all: lib/libgpiohb.so
 
 src/gpiohb.o: src/gpiohb.c lib/libbcm2835.so src/data_addr_luts.h
-	g++ -c -I ./src/bcm2835/src -L ./lib -fPIC $(MYCFLAGS) $< -o $@
+	g++ -Wall -c -I ./src/bcm2835/src -L ./lib -fPIC $(MYCFLAGS) $< -o $@
 
 lib/libgpiohb.so: src/gpiohb.o
 	mkdir -p lib
@@ -76,3 +73,7 @@ testrun: all
 
 testfifo: all
 	python test_fifo.py
+	
+benchmark: all
+	@echo "Timing the default acquisition"
+	bash -c "time (python run_local.py --dataNotSaved > /dev/null)"

@@ -22,9 +22,9 @@ class rpi_daq:
     CMDH_LOOPBRFIFO   = 0x1E
     CMD_LOOPBACK      = 0xF8
     CMDH_LOOPBACK     = 0x1F
-    DAC_HIGH_WORD     = 0x42
-    DAC_LOW_WORD      = 0x0A
-    TRIGGER_DELAY     = 0x07# 0x00 to 0x07
+#    DAC_HIGH_WORD     = 0x42
+#    DAC_LOW_WORD      = 0x0A
+#    TRIGGER_DELAY     = 0x07# 0x00 to 0x07
     PULSE_DELAY       = 0x50# minimum value = 30 (0x1e), maximum value 127    
     bcmlib=ctypes.CDLL(path+"/lib/libbcm2835.so", mode = ctypes.RTLD_GLOBAL)
     gpio=ctypes.CDLL(path+"/lib/libgpiohb.so")
@@ -38,7 +38,7 @@ class rpi_daq:
         self.DAC_HIGH_WORD     = DAC_HIGH_WORD     
         self.DAC_LOW_WORD      = DAC_LOW_WORD      
         self.TRIGGER_DELAY     = TRIGGER_DELAY
-        self.daq_options=yaml_options
+        self.daq_options       = yaml_options
         
         print("\t init RPI")
         if self.bcmlib.bcm2835_init()!=1 :
@@ -164,7 +164,7 @@ class rpi_daq:
                 break
             else:
                 #print "fifoSize = ",fifoSize #comment this out when running whithout debug
-                sleep(0.0001)
+                sleep(0.001)
 
 
     def processEvent(self):
