@@ -87,15 +87,28 @@ python daq-zmq-client.py -e
     sudo apt-get --yes dist-upgrade
     sudo apt-get clean
     sudo apt --yes autoremove
+    sudo rpi-update
     ```
 - `sudo reboot`
 - Change `pi` user password using `passwd`.
 - Enable `VNC` in pi customization GUI from `Desktop menu → Preferences → Raspberry Pi Configuration → Interfaces → VNC: Enabled`.
+<!---
+- Make sure to have `eth0` associated with the `dhcp` name by forcing it to be configured _after_ `wlan0`:
+    ```bash
+    echo -e '\nauto lo wlan0 eth0\n' | sudo tee --append /etc/network/interfaces > /dev/null
+    ```
+-->
 - Install some goodies:
     ```bash
     sudo apt-get --yes install emacs25 htop iotop nmap liquidprompt ipython elpa-markdown-mode yaml-mode
     liquidprompt_activate
     ```
+- Free up some space:
+	```bash
+	sudo apt-get --yes purge wolfram-engine libreoffice*
+	sudo apt-get clean
+	sudo apt-get --yes autoremove
+	```
 
 ## 🚧 ASUS Tinker Board from scratch 
 
