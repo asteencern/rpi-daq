@@ -12,7 +12,7 @@ daq_options:
  pulseDelay: 72
  preampFeedbackCapacitance: 8 
  totDACThreshold: 200
- shapingTime: 20
+ shapingTime: 40
 glb_options:
  moduleNumber: a_very_descriptive_string
  outputRawDataPath: data
