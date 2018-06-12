@@ -45,6 +45,8 @@ if __name__ == "__main__":
                 the_bit_string.set_channels_to_mask(daq_options['channelIdsToMask'])
                 the_bit_string.set_channels_to_disable_trigger_tot(daq_options['channelIdsDisableTOT'])
                 the_bit_string.set_channels_to_disable_trigger_toa(daq_options['channelIdsDisableTOA'])
+                the_bit_string.set_lg_shaping_time(daq_options['shapingTime'])
+                the_bit_string.set_hg_shaping_time(daq_options['shapingTime'])
                 the_bit_string.set_tot_dac_threshold(daq_options['totDACThreshold'])
                 the_bit_string.Print()
                 the_bits_c_uchar_p=the_bit_string.get_48_unsigned_char_p()
