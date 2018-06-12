@@ -208,7 +208,7 @@ extern "C" int set_dac_high_word(uint8_t c)
   bool NoAck = false;
 
   write_address(ADDR_DAC_HIGH);
-  set_bus_mode(MODE_READ);
+  set_bus_mode(MODE_WRITE);
   write_data(c);
   ST_LOW_ACK_CHECK();
   ST_HIGH_ACK_CHECK();
