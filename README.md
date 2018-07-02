@@ -100,8 +100,7 @@ python daq-zmq-client.py -e
 -->
 - Install some goodies:
     ```bash
-    sudo apt-get --yes install emacs25 htop iotop nmap liquidprompt ipython elpa-markdown-mode yaml-mode
-    liquidprompt_activate pbzip2 pigz plzip pxz parallel 
+    sudo apt-get --yes install emacs25 htop iotop nmap liquidprompt ipython elpa-markdown-mode yaml-mode pbzip2 pigz plzip pxz parallel 
     ```
 - Free up some space:
 	```bash
