@@ -10,8 +10,9 @@ daq_options:
  channelIdsDisableTOA: [22]
  injectionDAC: 1000
  pulseDelay: 72
- preampFeedbackCapacitance: 8 
+ preampFeedbackCapacitance: 8
  totDACThreshold: 200
+ toaDACThreshold: 270
  shapingTime: 40
 glb_options:
  moduleNumber: a_very_descriptive_string
