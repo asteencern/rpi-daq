@@ -1,9 +1,9 @@
 import zmq,yaml
 import os,time,datetime
 import bitarray,struct
-import unpacker
-from optparse import OptionParser
+import unpacker,progressbar
 
+from optparse import OptionParser
 class yaml_config:
     yaml_opt=yaml.YAMLObject()
     
@@ -36,7 +36,9 @@ if __name__ == "__main__":
     parser.add_option('-e','--dataNotSaved',dest="dataNotSaved",action="store_true",default=False,
                       help="set to true if you don't want to save the data (and the yaml file)")
     parser.add_option("-f", "--pulseDelay", dest="pulseDelay",type="int",action="store",
-                      help="pulse delay (arbitrary unit) w.r.t. the trigger",default=72)
+                      help="pulse delay (arbitrary unit) w.r.t. the trigger",default=50)
+    parser.add_option("-g", "--nEvent", dest="nEvent",type="int",action="store",
+                      help="number of events",default=1000)
     (options, args) = parser.parse_args()
     print(options)
 
@@ -45,6 +47,7 @@ if __name__ == "__main__":
     conf.yaml_opt['daq_options']['externalChargeInjection']=options.externalChargeInjection
     conf.yaml_opt['daq_options']['injectionDAC']=options.injectionDAC
     conf.yaml_opt['daq_options']['pulseDelay']=options.pulseDelay
+    conf.yaml_opt['daq_options']['nEvent']=options.nEvent
     for i in options.channelIds:
         conf.yaml_opt['daq_options']['channelIds'].append(int(i))
     
@@ -115,7 +118,7 @@ if __name__ == "__main__":
     #     cmd="PROCESS_EVENT"
     #     socket.send(cmd)
     #     str_data=socket.recv()
-    #     rawdata=dataStringUnpacker.unpack(str_data)
+	    #     rawdata=dataStringUnpacker.unpack(str_data)
     #     print("Receive event %d",i)
     #     #data_unpacker.unpack(rawdata)
     #     #data_unpacker.showData(i)
@@ -131,13 +134,17 @@ if __name__ == "__main__":
     puller.connect("tcp://"+glb_options['serverIpAdress']+":5556")
     try:
         while True:
-            for i in xrange(0,daq_options['nEvent']):
-                str_data=puller.recv()
+            bar = progressbar.ProgressBar(maxval=daq_options['nEvent'], widgets=[progressbar.Bar('=', '[', ']'), ' ', progressbar.Percentage()])
+            bar.start()
+            print("Progression :")
+	    for i in xrange(0,daq_options['nEvent']):
+    		str_data=puller.recv()
                 rawdata=dataStringUnpacker.unpack(str_data)
-                print("Receive event %d",i)
+                bar.update(i+1)
                 byteArray = bytearray(rawdata)
                 if options.dataNotSaved==False:
                     outputFile.write(byteArray)
+            bar.finish()
             puller.close()
             socket.send("END_OF_RUN")
             if socket.recv()=="CLOSING_SERVER":
