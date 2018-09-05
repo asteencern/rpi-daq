@@ -39,6 +39,8 @@ if __name__ == "__main__":
                       help="pulse delay (arbitrary unit) w.r.t. the trigger",default=50)
     parser.add_option("-g", "--nEvent", dest="nEvent",type="int",action="store",
                       help="number of events",default=1000)
+    parser.add_option("-i", "--moduleNumber", dest="moduleNumber",type=str,action="store",
+                      help="module number (or name)",default="toto")
     (options, args) = parser.parse_args()
     print(options)
 
@@ -51,6 +53,7 @@ if __name__ == "__main__":
     for i in options.channelIds:
         conf.yaml_opt['daq_options']['channelIds'].append(int(i))
     
+    conf.yaml_opt['glb_options']['moduleNumber']=options.moduleNumber
     daq_options=conf.yaml_opt['daq_options']
     glb_options=conf.yaml_opt['glb_options']
 
