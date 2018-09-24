@@ -57,7 +57,7 @@ if __name__ == "__main__":
     daq_options=conf.yaml_opt['daq_options']
     glb_options=conf.yaml_opt['glb_options']
 
-    print "Global options = "+yaml.dump(glb_options)
+    print("Global options = ",yaml.dump(glb_options))
 
     if glb_options['startServerManually']==False:
         os.system("ssh -T pi@"+glb_options['serverIpAdress']+" \"nohup python "+glb_options['serverCodePath']+"/daq-zmq-server.py > log.log 2>&1& \"")
@@ -68,7 +68,7 @@ if __name__ == "__main__":
     socket.connect("tcp://"+glb_options['serverIpAdress']+":5555")
 
     cmd="DAQ_CONFIG"
-    print cmd
+    print(cmd)
     socket.send(cmd)
     status=socket.recv()
     if status=="READY_FOR_CONFIG":
@@ -76,7 +76,7 @@ if __name__ == "__main__":
         the_config=socket.recv()
         print("Returned DAQ_CONFIG:\n%s"%the_config)
     else:
-        print "WRONG STATUS -> exit()"
+        print("WRONG STATUS -> exit()")
         exit()
 
     dataSize=30786 # 30784 + 2 for injection value
@@ -105,7 +105,7 @@ if __name__ == "__main__":
                 break
             
     cmd="CONFIGURE"
-    print cmd
+    print(cmd)
     socket.send(cmd)
     return_bitstring = socket.recv()
     print("Returned bit string = %s" % return_bitstring)
@@ -140,8 +140,8 @@ if __name__ == "__main__":
             bar = progressbar.ProgressBar(maxval=daq_options['nEvent'], widgets=[progressbar.Bar('=', '[', ']'), ' ', progressbar.Percentage()])
             bar.start()
             print("Progression :")
-	    for i in xrange(0,daq_options['nEvent']):
-    		str_data=puller.recv()
+            for i in xrange(0,daq_options['nEvent']):
+                str_data=puller.recv()
                 rawdata=dataStringUnpacker.unpack(str_data)
                 bar.update(i+1)
                 byteArray = bytearray(rawdata)
