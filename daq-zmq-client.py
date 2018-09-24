@@ -64,16 +64,16 @@ if __name__ == "__main__":
     
     context = zmq.Context()
     socket = context.socket(zmq.REQ)
-    print("Send request to server")
+    print("Send_String request to server")
     socket.connect("tcp://"+glb_options['serverIpAdress']+":5555")
 
     cmd="DAQ_CONFIG"
     print(cmd)
-    socket.send(cmd)
-    status=socket.recv()
+    socket.send_string(cmd)
+    status=socket.recv_string()
     if status=="READY_FOR_CONFIG":
-        socket.send(conf.dump())
-        the_config=socket.recv()
+        socket.send_string(conf.dump())
+        the_config=socket.recv_string()
         print("Returned DAQ_CONFIG:\n%s"%the_config)
     else:
         print("WRONG STATUS -> exit()")
@@ -106,8 +106,8 @@ if __name__ == "__main__":
             
     cmd="CONFIGURE"
     print(cmd)
-    socket.send(cmd)
-    return_bitstring = socket.recv()
+    socket.send_string(cmd)
+    return_bitstring = socket.recv_string()
     print("Returned bit string = %s" % return_bitstring)
     bitstring=[int(i,16) for i in return_bitstring.split()]
     print("\t write bits string in output file")
@@ -117,10 +117,10 @@ if __name__ == "__main__":
     
     #data_unpacker=unpacker.unpacker(daq_options['compressRawData'])
 
-    # for i in xrange(0,daq_options['nEvent']):
+    # for i in range(0,daq_options['nEvent']):
     #     cmd="PROCESS_EVENT"
-    #     socket.send(cmd)
-    #     str_data=socket.recv()
+    #     socket.send_string(cmd)
+    #     str_data=socket.recv_string()
 	    #     rawdata=dataStringUnpacker.unpack(str_data)
     #     print("Receive event %d",i)
     #     #data_unpacker.unpack(rawdata)
@@ -130,8 +130,8 @@ if __name__ == "__main__":
     #         outputFile.write(byteArray)
 
     cmd="PROCESS_AND_PUSH_N_EVENTS"
-    socket.send(cmd)
-    mes=socket.recv()
+    socket.send_string(cmd)
+    mes=socket.recv_string()
     print(mes)
     puller=context.socket(zmq.PULL)
     puller.connect("tcp://"+glb_options['serverIpAdress']+":5556")
@@ -140,7 +140,7 @@ if __name__ == "__main__":
             bar = progressbar.ProgressBar(maxval=daq_options['nEvent'], widgets=[progressbar.Bar('=', '[', ']'), ' ', progressbar.Percentage()])
             bar.start()
             print("Progression :")
-            for i in xrange(0,daq_options['nEvent']):
+            for i in range(0,daq_options['nEvent']):
                 str_data=puller.recv()
                 rawdata=dataStringUnpacker.unpack(str_data)
                 bar.update(i+1)
@@ -149,8 +149,8 @@ if __name__ == "__main__":
                     outputFile.write(byteArray)
             bar.finish()
             puller.close()
-            socket.send("END_OF_RUN")
-            if socket.recv()=="CLOSING_SERVER":
+            socket.send_string("END_OF_RUN")
+            if socket.recv_string()=="CLOSING_SERVER":
                 socket.close()
                 context.term()
             break
