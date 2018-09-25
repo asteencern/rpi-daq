@@ -48,6 +48,7 @@ if __name__ == "__main__":
                 the_bit_string.set_lg_shaping_time(daq_options['shapingTime'])
                 the_bit_string.set_hg_shaping_time(daq_options['shapingTime'])
                 the_bit_string.set_tot_dac_threshold(daq_options['totDACThreshold'])
+                the_bit_string.set_toa_dac_threshold(daq_options['toaDACThreshold'])
                 the_bit_string.Print()
                 the_bits_c_uchar_p=the_bit_string.get_48_unsigned_char_p()
                 outputBitString=theDaq.configure(the_bits_c_uchar_p)

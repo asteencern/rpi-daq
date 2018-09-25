@@ -12,6 +12,7 @@ daq_options:
  pulseDelay: 47
  preampFeedbackCapacitance: 8 
  totDACThreshold: 200
+ toaDACThreshold: 270
  shapingTime: 35
 glb_options:
  moduleNumber: 63
