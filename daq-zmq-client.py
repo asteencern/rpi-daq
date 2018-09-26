@@ -1,9 +1,9 @@
 import zmq,yaml
 import os,time,datetime
 import bitarray,struct
-import unpacker
-from optparse import OptionParser
+import unpacker,progressbar
 
+from optparse import OptionParser
 class yaml_config:
     yaml_opt=yaml.YAMLObject()
     
@@ -36,7 +36,11 @@ if __name__ == "__main__":
     parser.add_option('-e','--dataNotSaved',dest="dataNotSaved",action="store_true",default=False,
                       help="set to true if you don't want to save the data (and the yaml file)")
     parser.add_option("-f", "--pulseDelay", dest="pulseDelay",type="int",action="store",
-                      help="pulse delay (arbitrary unit) w.r.t. the trigger",default=72)
+                      help="pulse delay (arbitrary unit) w.r.t. the trigger",default=50)
+    parser.add_option("-g", "--nEvent", dest="nEvent",type="int",action="store",
+                      help="number of events",default=1000)
+    parser.add_option("-i", "--moduleNumber", dest="moduleNumber",type=str,action="store",
+                      help="module number (or name)",default="toto")
     (options, args) = parser.parse_args()
     print(options)
 
@@ -45,32 +49,34 @@ if __name__ == "__main__":
     conf.yaml_opt['daq_options']['externalChargeInjection']=options.externalChargeInjection
     conf.yaml_opt['daq_options']['injectionDAC']=options.injectionDAC
     conf.yaml_opt['daq_options']['pulseDelay']=options.pulseDelay
+    conf.yaml_opt['daq_options']['nEvent']=options.nEvent
     for i in options.channelIds:
         conf.yaml_opt['daq_options']['channelIds'].append(int(i))
     
+    conf.yaml_opt['glb_options']['moduleNumber']=options.moduleNumber
     daq_options=conf.yaml_opt['daq_options']
     glb_options=conf.yaml_opt['glb_options']
 
-    print "Global options = "+yaml.dump(glb_options)
+    print("Global options = ",yaml.dump(glb_options))
 
     if glb_options['startServerManually']==False:
         os.system("ssh -T pi@"+glb_options['serverIpAdress']+" \"nohup python "+glb_options['serverCodePath']+"/daq-zmq-server.py > log.log 2>&1& \"")
     
     context = zmq.Context()
     socket = context.socket(zmq.REQ)
-    print("Send request to server")
+    print("Send_String request to server")
     socket.connect("tcp://"+glb_options['serverIpAdress']+":5555")
 
     cmd="DAQ_CONFIG"
-    print cmd
-    socket.send(cmd)
-    status=socket.recv()
+    print(cmd)
+    socket.send_string(cmd)
+    status=socket.recv_string()
     if status=="READY_FOR_CONFIG":
-        socket.send(conf.dump())
-        the_config=socket.recv()
+        socket.send_string(conf.dump())
+        the_config=socket.recv_string()
         print("Returned DAQ_CONFIG:\n%s"%the_config)
     else:
-        print "WRONG STATUS -> exit()"
+        print("WRONG STATUS -> exit()")
         exit()
 
     dataSize=30786 # 30784 + 2 for injection value
@@ -99,9 +105,9 @@ if __name__ == "__main__":
                 break
             
     cmd="CONFIGURE"
-    print cmd
-    socket.send(cmd)
-    return_bitstring = socket.recv()
+    print(cmd)
+    socket.send_string(cmd)
+    return_bitstring = socket.recv_string()
     print("Returned bit string = %s" % return_bitstring)
     bitstring=[int(i,16) for i in return_bitstring.split()]
     print("\t write bits string in output file")
@@ -111,11 +117,11 @@ if __name__ == "__main__":
     
     #data_unpacker=unpacker.unpacker(daq_options['compressRawData'])
 
-    # for i in xrange(0,daq_options['nEvent']):
+    # for i in range(0,daq_options['nEvent']):
     #     cmd="PROCESS_EVENT"
-    #     socket.send(cmd)
-    #     str_data=socket.recv()
-    #     rawdata=dataStringUnpacker.unpack(str_data)
+    #     socket.send_string(cmd)
+    #     str_data=socket.recv_string()
+	    #     rawdata=dataStringUnpacker.unpack(str_data)
     #     print("Receive event %d",i)
     #     #data_unpacker.unpack(rawdata)
     #     #data_unpacker.showData(i)
@@ -124,23 +130,27 @@ if __name__ == "__main__":
     #         outputFile.write(byteArray)
 
     cmd="PROCESS_AND_PUSH_N_EVENTS"
-    socket.send(cmd)
-    mes=socket.recv()
+    socket.send_string(cmd)
+    mes=socket.recv_string()
     print(mes)
     puller=context.socket(zmq.PULL)
     puller.connect("tcp://"+glb_options['serverIpAdress']+":5556")
     try:
         while True:
-            for i in xrange(0,daq_options['nEvent']):
+            bar = progressbar.ProgressBar(maxval=daq_options['nEvent'], widgets=[progressbar.Bar('=', '[', ']'), ' ', progressbar.Percentage()])
+            bar.start()
+            print("Progression :")
+            for i in range(0,daq_options['nEvent']):
                 str_data=puller.recv()
                 rawdata=dataStringUnpacker.unpack(str_data)
-                print("Receive event %d",i)
+                bar.update(i+1)
                 byteArray = bytearray(rawdata)
                 if options.dataNotSaved==False:
                     outputFile.write(byteArray)
+            bar.finish()
             puller.close()
-            socket.send("END_OF_RUN")
-            if socket.recv()=="CLOSING_SERVER":
+            socket.send_string("END_OF_RUN")
+            if socket.recv_string()=="CLOSING_SERVER":
                 socket.close()
                 context.term()
             break

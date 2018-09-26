@@ -57,10 +57,10 @@ class unpacker:
 
     def showData(self,eventID):
         for sk in range(4):
-            print "Event = "+str(eventID)+"\t Chip = "+str(sk)+"\t RollMask = "+hex(self.rollMask)
+            print("Event = "+str(eventID)+"\t Chip = "+str(sk)+"\t RollMask = "+hex(self.rollMask))
             for ch in range(128):
-                stream=""
+                stream="channelID = "+str(63-ch%64)+""
                 for sca in range(15):
                     stream=stream+" "+str(self.sk2cms_data[sk][ch][sca])
-                print stream
+                print(stream)
 

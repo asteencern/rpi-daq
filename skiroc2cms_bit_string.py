@@ -85,11 +85,29 @@ class bit_string:
             bit=(capa>>i)&1
             self.bits[381-6+i]=bit
 
+    def set_lg_shaping_time(self,stime):
+        word=stime/5
+        for i in range(0,4):
+            bit=(word>>i)&1
+            self.bits[364-i]=bit
+
+    def set_hg_shaping_time(self,stime):
+        word=stime/5
+        for i in range(0,4):
+            bit=(word>>i)&1
+            self.bits[358-i]=bit
+
     def set_tot_dac_threshold(self,thr):
         thr=thr&0x3ff
         for i in range(0,10):
             bit=(thr>>i)&1
             self.bits[61+i]=bit
-            
+
+    def set_toa_dac_threshold(self,thr):
+        thr=thr&0x3ff
+        for i in range(0,10):
+            bit=(thr>>i)&1
+            self.bits[51+i]=bit
+
     def Print(self):
         print(self.bits)

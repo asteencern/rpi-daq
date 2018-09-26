@@ -1,19 +1,21 @@
 ---
 daq_options:
  compressRawData: yes
- nEvent: 100
+ nEvent: 500
  externalChargeInjection: yes
  acquisitionType: sweep
- channelIds: [10]
- channelIdsToMask: [22]
- channelIdsDisableTOT: [22]
- channelIdsDisableTOA: [22]
+ channelIds: []
+ channelIdsToMask: []
+ channelIdsDisableTOT: []
+ channelIdsDisableTOA: []
  injectionDAC: 1000
- pulseDelay: 72
+ pulseDelay: 47
  preampFeedbackCapacitance: 8 
  totDACThreshold: 200
+ toaDACThreshold: 270
+ shapingTime: 35
 glb_options:
- moduleNumber: a_very_descriptive_string
+ moduleNumber: 63
  outputRawDataPath: data
  outputYamlPath: yaml
  storeYamlFile: yes
