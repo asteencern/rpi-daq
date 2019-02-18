@@ -53,37 +53,36 @@ if __name__ == "__main__":
     print "daq options = "+yaml.dump(daq_options)
     print "Global options = "+yaml.dump(glb_options)
 
-    the_bit_string=sk2conf.bit_string()
-    the_bit_string.Print()
-    if daq_options['externalChargeInjection']:
-        if len(daq_options['channelIds'])>0:
+    the_bits_c_uchar_p=(ctypes.c_ubyte*192)()
+    for chip in range(4):
+        the_bit_string=sk2conf.bit_string()
+        if daq_options['externalChargeInjection']==True:
             the_bit_string.set_channels_for_charge_injection(daq_options['channelIds'])
-        else:
-            print("Option channelIds should not be empty if charge injection is set")        
+        if daq_options['preampFeedbackCapacitance']>63:
+            print("!!!!!!!!! WARNING :: preampFeedbackCapacitance should not be higher than 63 !!!!!!!")
+            the_bit_string.set_preamp_feedback_capacitance(daq_options['preampFeedbackCapacitance'])
+        #change bit string in chip:
+        nchannelsToMask = len(daq_options['channelIdsToMask'][chip])
+        print daq_options['channelIdsToMask'][chip]
+        if nchannelsToMask > 0:
+            the_bit_string.set_channels_to_mask(daq_options['channelIdsToMask'][chip])
+            the_bit_string.set_channels_to_disable_trigger_tot(daq_options['channelIdsToMask'][chip])
+            the_bit_string.set_channels_to_disable_trigger_toa(daq_options['channelIdsToMask'][chip])
+        the_bit_string.set_lg_shaping_time(daq_options['shapingTime'])
+        the_bit_string.set_hg_shaping_time(daq_options['shapingTime'])
+        the_bit_string.set_tot_dac_threshold(daq_options['totDACThreshold'])
+        the_bit_string.set_toa_dac_threshold(daq_options['toaDACThreshold'])
+        c_uchar_p=the_bit_string.get_48_unsigned_char_p()
+        for j in range(len(c_uchar_p)):
+            the_bits_c_uchar_p[48*chip+j]=c_uchar_p[j]
 
-    if len(daq_options['channelIdsToMask'])>0:
-        the_bit_string.set_channels_to_mask(daq_options['channelIdsToMask'])
-        
-    if len(daq_options['channelIdsDisableTOT'])>0:
-        the_bit_string.set_channels_to_disable_trigger_tot(daq_options['channelIdsDisableTOT'])
+    outputBitString=theDaq.configure_4chips(the_bits_c_uchar_p)
+    print( "chip 0 ",[hex(outputBitString[0][i]) for i in range(48)] )
+    print( "chip 1 ",[hex(outputBitString[1][i]) for i in range(48)] )
+    print( "chip 2 ",[hex(outputBitString[2][i]) for i in range(48)] )
+    print( "chip 3 ",[hex(outputBitString[3][i]) for i in range(48)] )
 
-    if len(daq_options['channelIdsDisableTOA'])>0:
-        the_bit_string.set_channels_to_disable_trigger_toa(daq_options['channelIdsDisableTOA'])
-
-
-    the_bit_string.Print()
-    the_bits_c_uchar_p=the_bit_string.get_48_unsigned_char_p()
-    print( [hex(the_bits_c_uchar_p[i]) for i in range(48)] )
-
-    c_uchar_p = (ctypes.c_ubyte*192)()
-    for i in xrange(192):
-        index=i%48
-        c_uchar_p[i]=the_bits_c_uchar_p[index]
-    print( [hex(c_uchar_p[i]) for i in xrange(192)] )
-
-    theDaq=rpi_daq.rpi_daq(daq_options)
-    outputBitString=theDaq.configure(the_bits_c_uchar_p)
-
+    
     the_time=datetime.datetime.now()
     if glb_options['storeYamlFile'] and not options.dataNotSaved:
         yamlFileName=glb_options['outputYamlPath']+"/Module"+str(glb_options['moduleNumber'])+"_"
