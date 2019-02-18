@@ -44,6 +44,16 @@ An example of client and server running in the same machine
 python daq-zmq-client.py -e
 ```
 
+## Prerequisite for the client machine
+To run `daq-zmq-client.py` from another machine the following libraries are needed:	
+- libzmq : https://github.com/zeromq/libzmq
+- pyzmq : https://github.com/zeromq/pyzmq 
+And:
+```bash
+pip install bitarray
+pip install progressbar
+```
+
 ## Development
 
 ### Code structure
