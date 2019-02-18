@@ -5,14 +5,12 @@ daq_options:
  externalChargeInjection: yes
  acquisitionType: sweep
  channelIds: []
- channelIdsToMask: []
- channelIdsDisableTOT: []
- channelIdsDisableTOA: []
+ channelIdsToMask: [[3,22],[],[],[]]
  injectionDAC: 1000
  pulseDelay: 47
  preampFeedbackCapacitance: 8 
  totDACThreshold: 200
- toaDACThreshold: 270
+ toaDACThreshold: 230
  shapingTime: 35
 glb_options:
  moduleNumber: 63
@@ -20,6 +18,6 @@ glb_options:
  outputYamlPath: yaml
  storeYamlFile: yes
  startServerManually: no
- serverIpAdress: rpiarnaudtest
+ serverIpAdress: localhost
  serverCodePath: /home/pi/rpi-daq
 ...
