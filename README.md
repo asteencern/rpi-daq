@@ -12,7 +12,7 @@ Two main sources of configuration:
 
 More details on the `SKIROC2_CMS` readout chip configuration can be found [here](https://cms-docdb.cern.ch/cgi-bin/DocDB/ShowDocument?docid=12963) and [here](https://indico.cern.ch/event/559024/contributions/2261087/attachments/1316812/1972848/20160727_SimuReview.pdf).
 
-## Installation
+## Installation (on the raspberry pi of the test stand)
 
 See [here](#raspberry-pi-3-from-scratch) to install Raspbian on a Pi 3.
 
