@@ -5,14 +5,12 @@ daq_options:
  externalChargeInjection: yes
  acquisitionType: sweep
  channelIds: []
- channelIdsToMask: []
- channelIdsDisableTOT: []
- channelIdsDisableTOA: []
+ channelIdsToMask: [[3,22],[],[],[]] #fill masked channels per chip. chip order = 3 2 1 0
  injectionDAC: 1000
  pulseDelay: 47
  preampFeedbackCapacitance: 8 
  totDACThreshold: 200
- toaDACThreshold: 270
+ toaDACThreshold: 230
  shapingTime: 35
 glb_options:
  moduleNumber: 63
