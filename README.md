@@ -48,6 +48,7 @@ python daq-zmq-client.py -e
 To run `daq-zmq-client.py` from another machine the following libraries are needed:	
 - libzmq : https://github.com/zeromq/libzmq
 - pyzmq : https://github.com/zeromq/pyzmq 
+
 And:
 ```bash
 pip install bitarray
