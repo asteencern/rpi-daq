@@ -112,7 +112,7 @@ class rpi_daq:
             print "completed"
         elif len(bit_string)==48*4:
             print "try to prog with 48*4 bytes:\t",
-            self.gpio. progandverify48_4chips(bit_string,outputBitString)
+            self.gpio.progandverify48_4chips(bit_string,outputBitString)
             print "completed"
         else:
             print("size of bit string not correct : should be 48*4 or 384*4 instead of ",len(bit_string),"\t-> exit")
